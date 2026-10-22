@@ -7,12 +7,10 @@ Guía para el equipo. Si nunca usaste git, seguí los pasos tal cual están.
 1. **Nunca se pushea directo a `main` ni a `develop`.** Siempre rama + Pull Request.
 2. `main` es lo que se entrega. Se trabaja sobre `develop`, y `develop` pasa a
    `main` antes de cada hito.
-3. **Toda rama sale de una tarjeta de Trello.** Sin tarjeta no hay rama, y
-   cada commit tiene que poder asociarse a una tarea (lo pide la consigna).
-4. Antes de arrancar, SIEMPRE traer lo último de `develop`.
-5. PR chico y temprano: apenas tengas un endpoint o una pantalla andando, abrilo.
-6. Cada uno trabaja con su propia cuenta de GitHub. Se evalúa quién hizo qué.
-7. Si algo no te cierra, preguntá en el grupo antes de inventar.
+3. Antes de arrancar, SIEMPRE traer lo último de `develop`.
+4. PR chico y temprano: apenas tengas un endpoint o una pantalla andando, abrilo.
+5. Cada uno trabaja con su propia cuenta de GitHub. Se evalúa quién hizo qué.
+6. Si algo no te cierra, preguntá en el grupo antes de inventar.
 
 ## Setup inicial (una sola vez)
 
@@ -38,19 +36,19 @@ git config --global user.email "el-mail-de-tu-cuenta@ejemplo.com"
 |------|----------|---------------|
 | `main` | Versión entregada en cada hito | Solo por PR desde `develop` |
 | `develop` | Integración del trabajo de todos | Solo por PR desde tu rama |
-| `tipo/T<n>-descripcion` | Tu tarea | Vos |
+| `tipo/descripcion` | Tu tarea | Vos |
 
-Formato de tu rama: `tipo/T<número de tarjeta>-descripcion-corta`, en
+Formato de tu rama: `tipo/descripcion-corta`, en
 minúsculas y con guiones.
 
 ```
-feat/T12-mapa-de-butacas
-fix/T31-doble-reserva-de-butaca
-docs/T05-supuestos-hito-1
-refactor/T40-unificar-validaciones
+feat/mapa-de-butacas
+fix/doble-reserva-de-butaca
+docs/supuestos-hito-1
+refactor/unificar-validaciones
 ```
 
-El número sale de la tarjeta de Trello. Los tipos son los mismos que los de
+Los tipos son los mismos que los de
 los commits (abajo).
 
 ## Commits
@@ -100,11 +98,7 @@ feat: todo el tp
 
 ## El ciclo de trabajo
 
-### 1. Tomar una tarjeta
-
-En Trello, asignate la tarjeta y movela a "En progreso". Anotá su número.
-
-### 2. Traer lo último
+### 1. Traer lo último
 
 ```bash
 git checkout develop
@@ -114,13 +108,13 @@ git pull origin develop
 **Siempre**, antes de crear tu rama. Si trabajás sobre código viejo, después
 el merge duele.
 
-### 3. Crear tu rama
+### 2. Crear tu rama
 
 ```bash
-git checkout -b feat/T12-mapa-de-butacas
+git checkout -b feat/mapa-de-butacas
 ```
 
-### 4. Trabajar y commitear
+### 3. Trabajar y commitear
 
 ```bash
 git status                        # ver qué cambió
@@ -131,40 +125,37 @@ git commit -m "feat(compras): agregar GET /funciones/{id}/butacas"
 Mirá el `git status` antes de `git add .`: si aparece algo que no tocaste a
 propósito, no lo sumes.
 
-### 5. Subir la rama
+### 4. Subir la rama
 
 ```bash
-git push -u origin feat/T12-mapa-de-butacas
+git push -u origin feat/mapa-de-butacas
 ```
 
 La primera vez lleva `-u origin <rama>`. Después alcanza con `git push`.
 
-### 6. Abrir el Pull Request
+### 5. Abrir el Pull Request
 
 1. Entrá al repo en GitHub y hacé clic en **"Compare & pull request"**.
 2. **Verificá que diga `base: develop` ← `compare: tu-rama`.** Si dice `base: main`, cambialo.
 3. Título: igual que un commit. Por ejemplo, `feat(compras): mapa de butacas`.
-4. Completá la plantilla: link a la tarjeta, qué cambia, cómo probarlo y el checklist.
-5. Asigná a tu revisor (abajo) y avisá en el grupo.
-6. Mové la tarjeta a "En revisión".
+4. En la descripción: qué cambia y cómo probarlo.
+5. Pedile review a un compañero que no haya trabajado en ese cambio y avisá en el grupo.
 
-### 7. Review
+### 6. Review
 
 - Hace falta **1 aprobación** para mergear. No se aprueba el PR propio.
 - Si te piden cambios, seguís en la misma rama, commiteás y pusheás. El PR se actualiza solo.
 - Cuando está aprobado, el autor mergea con **"Create a merge commit"** (no
   squash, así queda cada commit con su autor) y borra la rama.
 
-- Pedí review a un compañero que no haya trabajado en ese cambio.
-
-### 8. Después del merge
+### 7. Después del merge
 
 ```bash
 git checkout develop
 git pull origin develop
 ```
 
-Mové la tarjeta a "Hecho" y arrancá la próxima rama desde ahí.
+Y arrancá la próxima rama desde ahí.
 
 ## Si aparece un conflicto
 

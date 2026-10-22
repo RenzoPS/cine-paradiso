@@ -39,8 +39,6 @@ cátedra Lanzillotta, 2.º cuatrimestre 2026.
 Las versiones de Python están fijadas en `api/requirements.txt` y
 `web/requirements.txt`.
 
-Gestión del proyecto: tablero Kanban en Trello (_link a completar_).
-
 ## Arquitectura
 
 ```
