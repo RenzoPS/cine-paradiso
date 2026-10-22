@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Cine Paradiso API
+  version: 0.1.0
+  description: |
+    API REST de Cine Paradiso. Todos los endpoints cuelgan de `/cine_paradiso_api`.
+    Cada endpoint se documenta acá en el mismo PR que lo implementa.
+servers:
+  - url: http://localhost:5000/cine_paradiso_api
+
+paths: {}

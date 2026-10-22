@@ -1,0 +1,23 @@
+services:
+  db:
+    image: mysql:8
+    container_name: cine-paradiso-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./api/db/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./api/db/catalogo.sql:/docker-entrypoint-initdb.d/02_catalogo.sql:ro
+      - ./api/db/charset.cnf:/etc/mysql/conf.d/zz-charset.cnf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  mysql_data:
