@@ -11,7 +11,6 @@ services:
       - mysql_data:/var/lib/mysql
       - ./api/db/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
       - ./api/db/catalogo.sql:/docker-entrypoint-initdb.d/02_catalogo.sql:ro
-      - ./api/db/charset.cnf:/etc/mysql/conf.d/zz-charset.cnf:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
