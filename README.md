@@ -181,10 +181,61 @@ Todos cuelgan de `/cine_paradiso_api`. El contrato completo está en
 [editor.swagger.io](https://editor.swagger.io) o con la extensión "Swagger
 Viewer" de VS Code.
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| Método | Endpoint | Descripción | Acceso |
+|--------|----------|-------------|--------|
+| POST | `/auth/registro` | Alta de cliente | Público |
+| POST | `/auth/login` | Devuelve un token firmado con el rol y la expiración | Público |
+| GET | `/usuarios/me` | Datos del usuario logueado | Cliente |
+| PUT | `/usuarios/me` | Editar los datos propios | Cliente |
+| GET | `/usuarios/me/historial` | Consumos (entradas y servicios) y películas vistas | Cliente |
+| GET | `/usuarios` | Listado de usuarios | Admin |
+| PATCH | `/usuarios/{id_usuario}/rol` | Dar o quitar el rol de admin | Admin |
+| GET | `/peliculas/tmdb?q=` | Busca películas en TMDB | Admin |
+| POST | `/peliculas` | Importa una película de TMDB por `tmdb_id`, con géneros y póster | Admin |
+| GET | `/peliculas` | Listado de películas. Con `?en_cartel=true` es la cartelera; filtros por local, fecha y género | Público |
+| GET | `/peliculas/{id_pelicula}` | Detalle: sinopsis, póster, duración y clasificación | Público |
+| PUT | `/peliculas/{id_pelicula}` | Editar sinopsis, póster, clasificación y período en cartel | Admin |
+| DELETE | `/peliculas/{id_pelicula}` | Baja lógica | Admin |
+| GET | `/generos` | Géneros disponibles | Público |
+| GET | `/locales` | Listado de locales | Público |
+| POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
+| PUT | `/salas/{id_sala}` | Editar una sala | Admin |
+| POST | `/salas/{id_sala}/butacas` | Genera la grilla de butacas (filas × columnas) | Admin |
+| GET | `/salas/{id_sala}/butacas` | Butacas y capacidad de la sala | Admin |
+| GET | `/funciones` | Funciones disponibles, con filtros por película, local y fecha | Público |
+| GET | `/funciones/{id_funcion}` | Detalle de una función: película, sala, local, fecha y precio | Público |
+| POST | `/funciones` | Programar una función | Admin |
+| PUT | `/funciones/{id_funcion}` | Editar una función | Admin |
+| DELETE | `/funciones/{id_funcion}` | Baja de una función sin ventas | Admin |
+| GET | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
+| GET | `/servicios` | Servicios activos | Público |
+| POST | `/servicios` | Alta de un servicio | Admin |
+| PUT | `/servicios/{id_servicio}` | Modificar un servicio | Admin |
+| DELETE | `/servicios/{id_servicio}` | Baja lógica de un servicio | Admin |
+| POST | `/compras` | Reserva butacas y crea la compra `pendiente`. 409 si alguna ya se ocupó | Cliente |
+| GET | `/compras` | Compras del usuario logueado | Cliente |
+| GET | `/compras/{id_compra}` | Detalle de una compra | Cliente |
+| DELETE | `/compras/{id_compra}` | Abandonar una compra pendiente y liberar las butacas | Cliente |
+| PUT | `/compras/{id_compra}/servicios` | Servicios y cantidades de una compra pendiente | Cliente |
+| POST | `/compras/{id_compra}/confirmar` | Pasa la compra a `pagada`, genera la factura y envía el mail con el QR | Cliente |
+| GET | `/compras/{id_compra}/factura` | Datos de la factura | Cliente |
+| GET | `/compras/{id_compra}/qr` | Imagen PNG del QR | Cliente |
+| POST | `/compras/{id_compra}/cancelar` | Cancela si está dentro del plazo y libera las butacas | Cliente |
+| POST | `/compras/validar` | Valida el QR en el ingreso a la sala y marca la compra como `usada` | Admin |
+| GET | `/estadisticas/ocupacion?por=funcion\|pelicula` | Ocupación por función o por película | Admin |
+| GET | `/estadisticas/ventas-por-genero` | Ventas por género | Admin |
+| GET | `/estadisticas/franjas-horarias` | Franjas horarias más vendidas | Admin |
+| GET | `/estadisticas/cancelaciones` | Cancelaciones por período y por película | Admin |
 
-Cada endpoint se suma acá en el mismo PR que lo implementa.
+Todos los endpoints tienen seguridad: los públicos piden la API key del web,
+y los de cliente y admin, además, el token del login. Sin token o con el token
+vencido responden 401, y si el rol no alcanza, 403.
+
+Si un endpoint cambia al implementarlo, se actualiza acá en el mismo PR.
+
+El esquema de tablas está en [`docs/esquema-de-tablas.png`](docs/esquema-de-tablas.png)
+(fuente editable en `docs/esquema-de-tablas.drawio`, se abre en
+[app.diagrams.net](https://app.diagrams.net)).
 
 Los listados admiten `_limit` (entre 1 y 100, por defecto 10) y `_offset`
 (mayor o igual a cero, por defecto 0), y devuelven los datos bajo una clave

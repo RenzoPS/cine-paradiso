@@ -148,6 +148,22 @@ La primera vez lleva `-u origin <rama>`. Después alcanza con `git push`.
 - Cuando está aprobado, el autor mergea con **"Create a merge commit"** (no
   squash, así queda cada commit con su autor) y borra la rama.
 
+#### Cómo revisar un PR
+
+Cualquiera del equipo puede revisar, y conviene que más de uno mire cada PR.
+Todo desde la web de GitHub:
+
+1. Entrá al PR y abrí la pestaña **"Files changed"**.
+2. Leé el diff. Para comentar una línea, pasá el mouse por encima y tocá el **"+"** azul.
+3. Arriba a la derecha, **"Review changes"** y elegí:
+   - **Comment**: dejás observaciones sin aprobar ni rechazar.
+   - **Approve**: está bien y se puede mergear.
+   - **Request changes**: hay algo para corregir antes de mergear.
+4. **"Submit review"**.
+
+Con una aprobación alcanza para mergear, pero si alguien pidió cambios se
+resuelven antes.
+
 ### 7. Después del merge
 
 ```bash
