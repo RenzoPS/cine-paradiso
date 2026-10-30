@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Cartelera - Cine Paradiso{% endblock %}
+
+{% block content %}
+<section class="cartelera-header">
+    <div class="cartelera-title-group">
+        <h1 class="cartelera-title">
+            Cartelera <span class="brand-accent">Semanal</span>
+        </h1>
+        <p class="cartelera-subtitle">
+            Seleccioná tu película favorita y elegí la sala y horario que prefieras.
+        </p>
+    </div>
+
+    {# Barra de filtros #}
+    <form class="filter-bar" method="GET" action="{{ url_for('cartelera.listar') }}">
+        {# Mantener término de búsqueda si existe #}
+        {% if query_busqueda %}
+            <input type="hidden" name="q" value="{{ query_busqueda }}">
+        {% endif %}
+
+        <div class="filter-group filter-sucursal">
+            <label for="filtro-sucursal" class="filter-label">Sucursal</label>
+            <div class="select-wrapper">
+                <select name="sucursal" id="filtro-sucursal" class="filter-select" onchange="this.form.submit()">
+                    {% for suc in sucursales %}
+                        <option value="{{ suc.id }}" {% if filtro_sucursal == suc.id %}selected{% endif %}>
+                            {{ suc.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-group filter-fecha">
+            <span class="filter-label">Fecha</span>
+            <div class="date-pills">
+                <label class="date-pill-label">
+                    <input type="radio" name="fecha" value="todos" {% if filtro_fecha == 'todos' %}checked{% endif %} onchange="this.form.submit()">
+                    <span class="date-pill">Todas</span>
+                </label>
+                <label class="date-pill-label">
+                    <input type="radio" name="fecha" value="hoy" {% if filtro_fecha == 'hoy' %}checked{% endif %} onchange="this.form.submit()">
+                    <span class="date-pill">Hoy</span>
+                </label>
+                <label class="date-pill-label">
+                    <input type="radio" name="fecha" value="manana" {% if filtro_fecha == 'manana' %}checked{% endif %} onchange="this.form.submit()">
+                    <span class="date-pill">Mañana</span>
+                </label>
+                <label class="date-pill-label">
+                    <input type="radio" name="fecha" value="finde" {% if filtro_fecha == 'finde' %}checked{% endif %} onchange="this.form.submit()">
+                    <span class="date-pill">Fin de semana</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-group filter-genero">
+            <label for="filtro-genero" class="filter-label">Género</label>
+            <div class="select-wrapper">
+                <select name="genero" id="filtro-genero" class="filter-select" onchange="this.form.submit()">
+                    {% for gen in generos %}
+                        <option value="{{ gen }}" {% if filtro_genero == gen %}selected{% endif %}>
+                            {{ gen }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if filtro_sucursal or filtro_fecha != 'todos' or filtro_genero != 'Todos' or query_busqueda %}
+            <div class="filter-group filter-reset">
+                <a href="{{ url_for('cartelera.listar') }}" class="btn btn-sm btn-outline filter-reset-btn" title="Limpiar todos los filtros">
+                    Limpiar filtros
+                </a>
+            </div>
+        {% endif %}
+    </form>
+</section>
+
+{# Resultados / Grilla de películas #}
+<section class="cartelera-results" aria-label="Listado de películas en cartelera">
+    {% if peliculas %}
+        <div class="movies-grid">
+            {% for pelicula in peliculas %}
+                <article class="movie-card card">
+                    <div class="movie-poster-wrapper">
+                        {% if pelicula.afiche %}
+                            <img src="{{ pelicula.afiche }}" 
+                                 alt="Afiche de {{ pelicula.titulo }}" 
+                                 class="movie-poster"
+                                 loading="lazy">
+                        {% else %}
+                            <div class="movie-poster-placeholder" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                </svg>
+                                <span>Sin imagen</span>
+                            </div>
+                        {% endif %}
+                        {% if pelicula.clasificacion %}
+                            <span class="movie-badge movie-badge-{{ pelicula.clasificacion | lower | replace('+', 'plus') }}">
+                                {{ pelicula.clasificacion }}
+                            </span>
+                        {% endif %}
+                        {% if pelicula.destacada %}
+                            <span class="movie-featured-tag">Imperdible</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="movie-info">
+                        <div class="movie-meta">
+                            <span class="movie-duration">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                {{ pelicula.duracion }}
+                            </span>
+                            <span class="movie-year">{{ pelicula.anio }}</span>
+                        </div>
+
+                        <h2 class="movie-title">
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=pelicula.id) }}">
+                                {{ pelicula.titulo }}
+                            </a>
+                        </h2>
+
+                        <p class="movie-director">Dir. {{ pelicula.director }}</p>
+
+                        <div class="movie-genres">
+                            {% for g in pelicula.generos %}
+                                <span class="genre-tag">{{ g }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="movie-card-footer">
+                            <div class="movie-price-tag">
+                                <span class="price-label">Desde</span>
+                                <span class="price-amount">${{ pelicula.precio }}</span>
+                            </div>
+
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=pelicula.id) }}" class="btn btn-primary btn-sm movie-action-btn">
+                                Ver funciones / Horarios
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="cartelera-empty card">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" y1="15" x2="16" y2="15"></line>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                </svg>
+            </div>
+            <h2 class="empty-title">No se encontraron películas</h2>
+            <p class="empty-description">
+                No hay funciones disponibles con los filtros o el criterio de búsqueda seleccionado.
+            </p>
+            <a href="{{ url_for('cartelera.listar') }}" class="btn btn-primary">
+                Ver toda la cartelera
+            </a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+
