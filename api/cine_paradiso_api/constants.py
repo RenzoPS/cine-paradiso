@@ -15,6 +15,13 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', 'root')
 DB_NAME     = os.getenv('DB_NAME', 'cine_paradiso')
 DB_URL      = f'mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
+TMDB_API_KEY = os.getenv('TMDB_API_KEY', '').strip()
+TMDB_API_BASE_URL = 'https://api.themoviedb.org/3'
+TMDB_API_URL = 'https://api.themoviedb.org/3/search/movie'
+TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
+TMDB_LANGUAGE = 'es-AR'
+TMDB_TIMEOUT = 5
+
 TZ_ARG = timezone(timedelta(hours=-3))
 OFFSET_ESPERADO = '-03:00'
 
