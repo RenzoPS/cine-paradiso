@@ -31,7 +31,7 @@ cátedra Lanzillotta, 2.º cuatrimestre 2026.
 | Flask | API REST (JSON) y web (templates Jinja) | 3.1.3 |
 | SQLAlchemy (solo Core, sin ORM) | Conexión y ejecución de SQL escrito a mano con `text()` | 2.1.5 |
 | mysql-connector-python | Driver de MySQL que usa SQLAlchemy | 26.7.0 |
-| requests | Comunicación del web con la API | 2.34.2 |
+| requests | Comunicación del web con la API y consulta de TMDB desde el backend | 2.34.2 |
 | python-dotenv | Lectura del `.env` | 1.2.4 |
 | MySQL | Base de datos | 8 (imagen `mysql:8`) |
 | Docker Compose | Levantar MySQL sin instalarlo | v2 o superior |
@@ -88,6 +88,7 @@ API y el web; la base queda corriendo (`docker compose stop` para frenarla).
 ```bash
 cp .env.example .env              # Windows: copy .env.example .env
 docker compose up -d --wait db
+# Completar TMDB_API_KEY en .env para habilitar la búsqueda en TMDB.
 
 python3 -m venv .venv             # Windows: python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
@@ -190,12 +191,12 @@ Viewer" de VS Code.
 | GET | `/usuarios/me/historial` | Consumos (entradas y servicios) y películas vistas | Cliente |
 | GET | `/usuarios` | Listado de usuarios | Admin |
 | PATCH | `/usuarios/{id_usuario}/rol` | Dar o quitar el rol de admin | Admin |
-| GET | `/peliculas/tmdb?q=` | Busca películas en TMDB | Admin |
-| POST | `/peliculas` | Importa una película de TMDB por `tmdb_id`, con géneros y póster | Admin |
-| GET | `/peliculas` | Listado de películas. Con `?en_cartel=true` es la cartelera; filtros por local, fecha y género | Público |
-| GET | `/peliculas/{id_pelicula}` | Detalle: sinopsis, póster, duración y clasificación | Público |
-| PUT | `/peliculas/{id_pelicula}` | Editar sinopsis, póster, clasificación y período en cartel | Admin |
-| DELETE | `/peliculas/{id_pelicula}` | Baja lógica | Admin |
+| GET | `/peliculas/tmdb?q=` | Busca películas en TMDB para importar al catálogo | Admin |
+| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con géneros y póster y responde `201` | Admin |
+| GET | `/peliculas` | Listado paginado; filtros implementados por título, género, clasificación y estado activo. Cartelera (`en_cartel`, local y fecha) queda pendiente | Público |
+| GET | `/peliculas/{id_pelicula}` | Detalle de película con sus géneros | Público |
+| PUT | `/peliculas/{id_pelicula}` | Reemplazar sinopsis, póster, clasificación y período en cartel | Admin |
+| DELETE | `/peliculas/{id_pelicula}` | Baja lógica (`activa=false`); conserva película y asociaciones; repetible | Admin |
 | GET | `/generos` | Géneros disponibles | Público |
 | GET | `/locales` | Listado de locales | Público |
 | POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
@@ -227,9 +228,12 @@ Viewer" de VS Code.
 | GET | `/estadisticas/franjas-horarias` | Franjas horarias más vendidas | Admin |
 | GET | `/estadisticas/cancelaciones` | Cancelaciones por período y por película | Admin |
 
-Todos los endpoints tienen seguridad: los públicos piden la API key del web,
-y los de cliente y admin, además, el token del login. Sin token o con el token
-vencido responden 401, y si el rol no alcanza, 403.
+El diseño de seguridad previsto requiere API key del web para las rutas públicas
+y, para las rutas de cliente y admin, también el token del login. Sin token o
+con el token vencido responderán 401; si el rol no alcanza, 403. La búsqueda
+`/peliculas/tmdb`, `POST /peliculas`, `PUT /peliculas/{id_pelicula}` y
+`DELETE /peliculas/{id_pelicula}` están definidos para Admin, pero la
+verificación de rol queda pendiente hasta integrar el sistema de autenticación.
 
 Si un endpoint cambia al implementarlo, se actualiza acá en el mismo PR.
 
@@ -241,6 +245,17 @@ Los listados admiten `_limit` (entre 1 y 100, por defecto 10) y `_offset`
 (mayor o igual a cero, por defecto 0), y devuelven los datos bajo una clave
 descriptiva junto a `_total` y un objeto `_links` con `_first`, `_prev`,
 `_next` y `_last`.
+
+El `PUT /peliculas/{id_pelicula}` requiere enviar todos los campos editables
+(`sinopsis`, `poster_url`, `clasificacion`, `disponible_desde` y
+`disponible_hasta`) en el body. Cada campo admite `null`; el período de
+disponibilidad debe tener ambas fechas nulas o ambas informadas, y la fecha de
+inicio no puede ser posterior a la de fin. Las URL de póster deben usar HTTP o
+HTTPS.
+
+El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: cambia `activa` a
+`false` sin eliminar la película ni sus asociaciones. Si ya estaba inactiva,
+devuelve igualmente el detalle con `200`.
 
 Las fechas viajan en ISO 8601 con desplazamiento fijo de GMT-3:
 `2026-11-18T20:30:00-03:00`.
