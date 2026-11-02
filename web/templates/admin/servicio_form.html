@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% set titulo_pagina = "Editar servicio" if editando else "Nuevo servicio" %}
+{% block titulo %}{{ titulo_pagina }}{% endblock %}
+{% block contenido %}
+{% set v = servicio or {} %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/servicios_admin.css') }}">
+<section class="servicios-admin servicios-admin--formulario">
+  <h1>{{ titulo_pagina }}</h1>
+
+  <form method="post" class="formulario">
+    <label class="campo">
+      <span>Imagen (URL)</span>
+      <input type="url" name="imagen_url" maxlength="255" placeholder="https://..." value="{{ v.imagen_url or '' }}">
+    </label>
+
+    <label class="campo">
+      <span>Nombre</span>
+      <input type="text" name="nombre" maxlength="100" required placeholder="Ej: Combo Mega" value="{{ v.nombre or '' }}">
+    </label>
+
+    <label class="campo">
+      <span>Descripción</span>
+      <textarea name="descripcion" rows="3" maxlength="255" placeholder="Qué incluye el servicio">{{ v.descripcion or '' }}</textarea>
+    </label>
+
+    <div class="formulario__fila">
+      <label class="campo">
+        <span>Precio</span>
+        <input type="number" name="precio" min="0.01" step="0.01" required placeholder="$ 0" value="{{ v.precio or '' }}">
+      </label>
+
+      <label class="campo campo--check">
+        <input type="checkbox" name="activo" {% if v.activo is not defined or v.activo %}checked{% endif %}>
+        <span>Activo (se ofrece en la compra)</span>
+      </label>
+    </div>
+
+    <div class="formulario__acciones">
+      <a class="btn btn--secundario" href="{{ url_for('servicios_admin.listar') }}">Cancelar</a>
+      <button class="btn btn--primario" type="submit">Guardar</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

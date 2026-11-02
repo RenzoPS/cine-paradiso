@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Servicios{% endblock %}
+{% block contenido %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/servicios_admin.css') }}">
+<section class="servicios-admin">
+  <header class="servicios-admin__encabezado">
+    <h1>Servicios</h1>
+    <a class="btn btn--primario" href="{{ url_for('servicios_admin.formulario') }}">+ Nuevo servicio</a>
+  </header>
+
+  {% if not servicios %}
+    <p class="servicios-admin__vacio">Todavía no hay servicios cargados. Creá el primero con "Nuevo servicio".</p>
+  {% else %}
+    <ul class="servicios-lista">
+      {% for s in servicios %}
+      <li class="servicio-fila">
+        {% if s.imagen_url %}
+          <img class="servicio-fila__imagen" src="{{ s.imagen_url }}" alt="{{ s.nombre }}">
+        {% else %}
+          <div class="servicio-fila__imagen servicio-fila__imagen--vacia">Sin imagen</div>
+        {% endif %}
+
+        <div class="servicio-fila__datos">
+          <strong>{{ s.nombre }}</strong>
+          <span>${{ "{:,.0f}".format(s.precio).replace(",", ".") }}</span>
+        </div>
+
+        <span class="etiqueta {{ 'etiqueta--activo' if s.activo else 'etiqueta--inactivo' }}">
+          {{ "Activo" if s.activo else "Inactivo" }}
+        </span>
+
+        <div class="servicio-fila__acciones">
+          <a class="enlace" href="{{ url_for('servicios_admin.formulario', servicio_id=s.id) }}">Editar</a>
+          <form method="post" action="{{ url_for('servicios_admin.cambiar_estado', servicio_id=s.id, activo=not s.activo) }}">
+            <button class="enlace enlace--boton" type="submit">
+              {{ "Dar de baja" if s.activo else "Dar de alta" }}
+            </button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="servicios-admin__nota">Dar de baja oculta el servicio del flujo de compra, pero queda registrado en el historial de compras.</p>
+  {% endif %}
+</section>
+{% endblock %}
