@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Compra confirmada - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/qr.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="checkout checkout-centrado card">
+    <svg class="checkout-icono checkout-icono-ok" viewBox="0 0 24 24" width="72" height="72" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="8 12.5 11 15.5 16 9"></polyline>
+    </svg>
+
+    <h1 class="checkout-title">Compra confirmada</h1>
+    <p class="checkout-factura">Factura N° {{ factura.numero_factura }} - $ {{ factura.total }}</p>
+
+    {% include 'components/datos_funcion.html' %}
+
+    {# Si el mail falla, la compra igual queda confirmada #}
+    <p class="checkout-mail">
+        {% if mail_enviado %}
+        Te enviamos un email con tu QR
+        {% elif mail_enviado is false %}
+        No pudimos enviar el mail, pero tu compra está confirmada
+        {% endif %}
+    </p>
+
+    {% include 'components/entrada_qr.html' %}
+
+    <div class="checkout-acciones">
+        <a href="{{ url_for('compras.listar') }}" class="btn btn-primary">Ver mis entradas</a>
+        <a href="{{ url_for('cartelera.listar') }}" class="btn btn-outline">Volver a la cartelera</a>
+    </div>
+</section>
+{% endblock %}
