@@ -1,7 +1,8 @@
 from functools import wraps
-from flask import request, current_app
+from flask import request
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from cine_paradiso_api.constants import (
+    API_SECRET_KEY,
     ERROR_CODE_AUTH_ACCESS_DENIED,
     ERROR_CODE_AUTH_TOKEN_EXPIRED,
     ERROR_CODE_AUTH_TOKEN_INVALID,
@@ -13,7 +14,7 @@ from cine_paradiso_api.constants import (
 from cine_paradiso_api.utils import ErrorAPI
 
 def _crear_serializador():
-    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    return URLSafeTimedSerializer(API_SECRET_KEY)
 
 
 def crear_token(id_usuario, rol):
