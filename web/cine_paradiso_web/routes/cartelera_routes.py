@@ -1,20 +1,8 @@
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 
+from cine_paradiso_web.constants import GENEROS_DISPONIBLES, PELICULAS, SUCURSALES_DISPONIBLES
+
 cartelera_bp = Blueprint('cartelera', __name__)
-
-# Estructura lista para conectarse con la API / Base de Datos
-PELICULAS = []
-
-GENEROS_DISPONIBLES = [
-    'Todos', 'Drama', 'Comedia', 'Acción', 'Ciencia Ficción', 'Suspenso', 'Terror', 'Aventura', 'Romance'
-]
-
-SUCURSALES_DISPONIBLES = [
-    {'id': '', 'nombre': 'Todas las sedes'},
-    {'id': '1', 'nombre': 'Sucursal Centro'},
-    {'id': '2', 'nombre': 'Sucursal Belgrano'},
-    {'id': '3', 'nombre': 'Sucursal Recoleta'}
-]
 
 
 @cartelera_bp.route('/', methods=['GET'])
