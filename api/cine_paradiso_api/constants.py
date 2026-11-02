@@ -27,6 +27,7 @@ LIMIT_MIN      = 1
 LIMIT_MAX      = 100
 OFFSET_DEFAULT = 0
 
+API_SECRET_KEY          = os.getenv('API_SECRET_KEY')
 TOKEN_COOKIE_NOMBRE     = 'token_sesion'
 TOKEN_DURACION_SEGUNDOS = 86400
 ROL_ADMIN               = 'admin'
