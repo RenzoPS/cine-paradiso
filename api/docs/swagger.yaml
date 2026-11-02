@@ -96,9 +96,10 @@ paths:
         `clasificacion`, `disponible_desde` y `disponible_hasta` quedan en `null`
         para configurarlos posteriormente desde el backoffice.
 
-        Este endpoint está destinado a Admin. La autorización queda pendiente de
-        integrar con el sistema de autenticación y roles del proyecto.
+        Requiere una sesión válida con rol Admin.
       operationId: post_pelicula
+      security:
+        - TokenSesion: []
       requestBody:
         required: true
         content:
@@ -138,6 +139,10 @@ paths:
                   - Romance
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: TMDB no tiene una película con el ID indicado.
           content:
@@ -171,9 +176,10 @@ paths:
         para importar. La credencial se lee en el servidor desde `TMDB_API_KEY` y no se
         envía en la solicitud del cliente.
 
-        Este endpoint está definido para uso de Admin en el contrato del proyecto,
-        pero la autorización queda pendiente de integrar con el sistema de autenticación.
+        Requiere una sesión válida con rol Admin.
       operationId: buscar_peliculas_tmdb
+      security:
+        - TokenSesion: []
       parameters:
         - name: q
           in: query
@@ -191,6 +197,10 @@ paths:
                 $ref: '#/components/schemas/BusquedaTMDB'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '502':
           description: TMDB no respondió o devolvió una respuesta inválida.
           content:
@@ -242,9 +252,10 @@ paths:
         tener ambas fechas nulas o ambas informadas, y `disponible_desde` no puede
         ser posterior a `disponible_hasta`.
 
-        Este endpoint está destinado a Admin. La autorización queda pendiente de
-        integrar con el sistema de autenticación y roles del proyecto.
+        Requiere una sesión válida con rol Admin.
       operationId: put_pelicula
+      security:
+        - TokenSesion: []
       parameters:
         - name: id_pelicula
           in: path
@@ -303,6 +314,10 @@ paths:
                 $ref: '#/components/schemas/Pelicula'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: No existe una película con ese ID.
           content:
@@ -319,9 +334,10 @@ paths:
         para una película ya inactiva también responde correctamente con su estado
         actual.
 
-        Este endpoint está destinado a Admin. La autorización queda pendiente de
-        integrar con el sistema de autenticación y roles del proyecto.
+        Requiere una sesión válida con rol Admin.
       operationId: eliminar_pelicula
+      security:
+        - TokenSesion: []
       parameters:
         - name: id_pelicula
           in: path
@@ -339,6 +355,10 @@ paths:
                 $ref: '#/components/schemas/Pelicula'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: No existe una película con ese ID.
           content:
@@ -349,6 +369,11 @@ paths:
           $ref: '#/components/responses/InternalError'
 
 components:
+  securitySchemes:
+    TokenSesion:
+      type: apiKey
+      in: cookie
+      name: token_sesion
   parameters:
     Limit:
       name: _limit
@@ -378,6 +403,18 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     InternalError:
       description: Error interno al procesar la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No hay una sesión válida o el token expiró.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: La sesión no tiene permisos de administrador.
       content:
         application/json:
           schema:
