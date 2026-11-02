@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import text
 
-from ..constants import ESTADO_PAGADA, ESTADO_PENDIENTE
+from ..constants import ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA
 from . import ejecutar_consulta, transaccion
 
 def obtener_compra_por_id(id_compra: int) -> dict:
@@ -10,7 +10,8 @@ def obtener_compra_por_id(id_compra: int) -> dict:
     Busca una compra por su ID. Devuelve {} si no existe.
     """
     sql = """
-        SELECT id_compra, fk_id_usuario, fk_id_funcion, estado, total, numero_factura, fecha_vencimiento, fecha_pago
+        SELECT id_compra, fk_id_usuario, fk_id_funcion, estado, total, numero_factura, fecha_vencimiento, fecha_pago,
+               qr_token, fecha_validacion
         FROM compras
         WHERE id_compra = :id_compra
     """
@@ -90,5 +91,52 @@ def actualizar_compra_pagada(id_compra: int, numero_factura: str, fecha_pago: da
             'fecha_pago': fecha_pago,
             'estado_pagada': ESTADO_PAGADA,
             'estado_pendiente': ESTADO_PENDIENTE,
+        })
+        return resultado.rowcount > 0
+
+def obtener_fecha_hora_funcion(id_funcion: int) -> datetime | None:
+    """
+    Fecha y hora de la funcion, para validar que el QR se use el dia correcto.
+    """
+    sql = """
+        SELECT fecha_hora
+        FROM funciones
+        WHERE id_funcion = :id_funcion
+    """
+    filas = ejecutar_consulta(sql, {'id_funcion': id_funcion})
+    return filas[0]['fecha_hora'] if filas else None
+
+
+def guardar_qr_token(id_compra: int, qr_token: str) -> None:
+    """
+    Guarda el token del QR la primera vez que se genera.
+    """
+    sql = """
+        UPDATE compras
+        SET qr_token = :qr_token
+        WHERE id_compra = :id_compra
+            AND qr_token IS NULL
+    """
+    with transaccion() as conexion:
+        conexion.execute(text(sql), {'id_compra': id_compra, 'qr_token': qr_token})
+
+
+def marcar_compra_usada(id_compra: int, fecha_validacion: datetime) -> bool:
+    """
+    Pasa la compra de pagada a usada. Devuelve False si ya no estaba pagada: asi dos escaneos simultaneos no validan la misma compra.
+    """
+    sql = """
+        UPDATE compras
+        SET estado = :estado_usada,
+            fecha_validacion = :fecha_validacion
+        WHERE id_compra = :id_compra
+            AND estado = :estado_pagada
+    """
+    with transaccion() as conexion:
+        resultado = conexion.execute(text(sql), {
+            'id_compra': id_compra,
+            'fecha_validacion': fecha_validacion,
+            'estado_usada': ESTADO_USADA,
+            'estado_pagada': ESTADO_PAGADA,
         })
         return resultado.rowcount > 0

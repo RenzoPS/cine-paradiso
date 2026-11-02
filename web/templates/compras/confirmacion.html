@@ -2,6 +2,10 @@
 
 {% block title %}Compra confirmada - Cine Paradiso{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/qr.css') }}">
+{% endblock %}
+
 {% block content %}
 <section class="checkout checkout-centrado card">
     <svg class="checkout-icono checkout-icono-ok" viewBox="0 0 24 24" width="72" height="72" fill="none"
@@ -23,6 +27,8 @@
         No pudimos enviar el mail, pero tu compra está confirmada
         {% endif %}
     </p>
+
+    {% include 'components/entrada_qr.html' %}
 
     <div class="checkout-acciones">
         <a href="{{ url_for('compras.listar') }}" class="btn btn-primary">Ver mis entradas</a>

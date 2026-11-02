@@ -1,0 +1,66 @@
+/* --------------------------------------------------------------------------
+   Entrada digital (QR)
+   -------------------------------------------------------------------------- */
+
+.entrada-qr {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem auto 0;
+    padding: 1.5rem 1.25rem;
+    max-width: 22rem;
+    background-color: var(--color-bg-surface-elevated);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.entrada-qr-titulo {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.entrada-qr-imagen {
+    display: grid;
+    place-items: center;
+    width: 12rem;
+    aspect-ratio: 1;
+    padding: 0.5rem;
+    background-color: #FFFFFF;
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.entrada-qr-imagen img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+.entrada-qr-pendiente {
+    color: var(--color-text-inverse);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.entrada-qr-ayuda {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.entrada-qr-plazo {
+    color: var(--color-text-subtle);
+    font-size: 0.8rem;
+}
+
+.btn-peligro {
+    background-color: transparent;
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.btn-peligro:hover,
+.btn-peligro:focus-visible {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+}

@@ -1,14 +1,23 @@
 import logging
 from datetime import datetime
 from decimal import Decimal
+from io import BytesIO
 
 from ..constants import (
     ERROR_CODE_COMPRA_NO_CONFIRMABLE,
     ERROR_CODE_COMPRA_NOT_FOUND,
     ERROR_CODE_COMPRA_SIN_FACTURA,
     ERROR_CODE_COMPRA_VENCIDA,
+    ERROR_CODE_QR_CANCELADO,
+    ERROR_CODE_QR_NO_PAGADO,
+    ERROR_CODE_QR_OTRA_FUNCION,
+    ERROR_CODE_QR_OTRO_DIA,
+    ERROR_CODE_QR_SIN_EMITIR,
+    ERROR_CODE_QR_UTILIZADO,
+    ESTADO_CANCELADA,
     ESTADO_PAGADA,
     ESTADO_PENDIENTE,
+    ESTADO_USADA,
     ESTADO_VENCIDA,
     HORAS_LIMITE_CANCELACION,
     TZ_ARG,
@@ -16,9 +25,12 @@ from ..constants import (
 )
 from ..repositories import compras as db_compras
 from ..utils import ErrorAPI, formatear_fecha_hora
-from ..validators.compras import validar_id_compra
+from ..validators.compras import validar_cuerpo_validacion_qr, validar_id_compra
 from . import mail as mail_service
 from .mail_plantillas import CONFIRMACION_COMPRA
+from .qr import error_qr_invalido, generar_imagen_qr, generar_token_qr, leer_token_qr
+
+ESTADOS_CON_QR = (ESTADO_PAGADA, ESTADO_USADA)
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +167,7 @@ def _enviar_mail_confirmacion(compra: dict, factura: dict) -> bool:
             datos['email'],
             f"Compra en Cine Paradiso - Factura N° {factura ['numero_factura']}",
             cuerpo_mail,
+            generar_qr_de_compra(compra['id_compra']).getvalue(),
         )
     except Exception:
         logger.exception('No se pudo armar el mail de la compra %s', compra['id_compra'])
@@ -200,3 +213,88 @@ def obtener_factura(id_compra, id_usuario: int) -> dict:
             status=409,
         )
     return _armar_factura(compra)
+
+
+def _rechazar_ingreso(code: str, message: str, description: str) -> ErrorAPI:
+    return ErrorAPI(code=code, message=message, description=description, status=409)
+
+
+def _error_qr_utilizado(compra: dict) -> ErrorAPI:
+    return _rechazar_ingreso(
+        ERROR_CODE_QR_UTILIZADO,
+        'QR ya utilizado',
+        f"El QR ya fue validado el {formatear_fecha_hora(compra['fecha_validacion'])}",
+    )
+
+
+def generar_qr_de_compra(id_compra: int) -> BytesIO:
+    """
+    Imagen PNG del QR de una compra pagada. Genera y guarda el token la primera vez.
+    """
+    compra = db_compras.obtener_compra_por_id(id_compra)
+
+    if compra.get('estado') not in ESTADOS_CON_QR:
+        raise _rechazar_ingreso(
+            ERROR_CODE_QR_SIN_EMITIR,
+            'La compra no tiene QR',
+            f"El QR se genera cuando la compra esta pagada. Estado actual: '{compra.get('estado')}'",
+        )
+
+    if compra['qr_token'] is None:
+        compra['qr_token'] = generar_token_qr(id_compra)
+        db_compras.guardar_qr_token(id_compra, compra['qr_token'])
+
+    return generar_imagen_qr(compra['qr_token'])
+
+
+def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
+    """
+    QR de una compra del usuario logueado.
+    """
+    id_validado = validar_id_compra(id_compra)
+    _obtener_compra_propia(id_validado, id_usuario)
+    return generar_qr_de_compra(id_validado)
+
+
+def validar_ingreso(body) -> dict:
+    """
+    Valida el QR en la puerta de la sala: tiene que ser de esa funcion y de hoy, y no estar usado ni cancelado.
+    """
+    qr_token, id_funcion = validar_cuerpo_validacion_qr(body)
+    compra = db_compras.obtener_compra_por_id(leer_token_qr(qr_token))
+
+    if not compra or compra['qr_token'] != qr_token:
+        raise error_qr_invalido()
+
+    if compra['estado'] == ESTADO_USADA:
+        raise _error_qr_utilizado(compra)
+
+    if compra['estado'] == ESTADO_CANCELADA:
+        raise _rechazar_ingreso(ERROR_CODE_QR_CANCELADO, 'QR cancelado', 'La compra fue cancelada')
+
+    if compra['estado'] != ESTADO_PAGADA:
+        raise _rechazar_ingreso(ERROR_CODE_QR_NO_PAGADO, 'Compra sin pagar', f"Estado de la compra: '{compra['estado']}'")
+
+    if compra['fk_id_funcion'] != id_funcion:
+        raise _rechazar_ingreso(ERROR_CODE_QR_OTRA_FUNCION, 'QR de otra funcion', 'El QR corresponde a otra funcion')
+
+    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(id_funcion)
+    ahora = _ahora()
+
+    if fecha_hora_funcion.date() != ahora.date():
+        raise _rechazar_ingreso(
+            ERROR_CODE_QR_OTRO_DIA,
+            'QR de otro dia',
+            f'La funcion es el {formatear_fecha_hora(fecha_hora_funcion)}',
+        )
+
+    if not db_compras.marcar_compra_usada(compra['id_compra'], ahora):
+        raise _error_qr_utilizado(db_compras.obtener_compra_por_id(compra['id_compra']))
+
+    entradas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
+    return {
+        'id_compra': compra['id_compra'],
+        'estado': ESTADO_USADA,
+        'fecha_validacion': formatear_fecha_hora(ahora),
+        'butacas': [f"{entrada['fila']}{entrada['numero']}" for entrada in entradas],
+    }
