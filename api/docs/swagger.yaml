@@ -8,4 +8,195 @@ info:
 servers:
   - url: http://localhost:5000/cine_paradiso_api
 
-paths: {}
+paths: 
+
+  /compras/{id_compra}/confirmar:
+    post:
+      summary: "Confirmar una compra"
+      description: |
+        Confirma la compra: pasa de `pendiente` a `pagada`, calcula el total, genera la factura y envía el mail. Si la compra ya estaba pagada, devuelve la misma factura y no envía otro mail. Si el mail falla, la compra igual queda pagada (`mail_enviado: false`).
+      operationId: post_confirmar_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra confirmada, o ya confirmada anteriormente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La reserva venció (`compra.vencida`) o la compra no está pendiente (`compra.no.confirmable`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/factura:
+    get:
+      summary: "Obtener la factura de una compra"
+      description: Devuelve la factura de una compra propia que ya fue pagada.
+      operationId: get_factura_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Factura de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra todavía no fue pagada (`compra.sin.factura`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  responses:
+    BadRequest:
+      description: Parámetros inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Error interno al procesar la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Factura:
+      type: object
+      properties:
+        id_compra:
+          type: integer
+          example: 7
+        numero_factura:
+          type: string
+          example: '00000007'
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pagada
+        fecha_pago:
+          type: string
+          example: '2026-11-18T20:30:00-03:00'
+        entradas:
+          type: array
+          items:
+            type: object
+            properties:
+              fila:
+                type: string
+                example: E
+              numero:
+                type: integer
+                example: 8
+              precio_unitario:
+                type: string
+                example: '2500.00'
+        servicios:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Pochoclo
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1200.00'
+              subtotal:
+                type: string
+                example: '2400.00'
+        subtotal_entradas:
+          type: string
+          example: '5000.00'
+        subtotal_servicios:
+          type: string
+          example: '2400.00'
+        total:
+          type: string
+          example: '7400.00'
+        mail_enviado:
+          type: boolean
+          nullable: true
+          description: |
+            `true` si el mail se envió y `false` si falló. `null` si no se intentó enviar (la compra ya estaba pagada, o es la consulta de la factura).
+    ErrorResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - code
+              - message
+              - level
+              - description
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              level:
+                type: string
+              description:
+                type: string
