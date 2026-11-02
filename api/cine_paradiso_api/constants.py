@@ -43,3 +43,24 @@ ERROR_CODE_INVALID_FORMAT    = 'invalid.format'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
 ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
 ERROR_CODE_UNKNOWN_FIELD     = 'unknown.field'
+
+
+
+WEB_URL = os.getenv('WEB_URL', 'http://localhost:5001')
+
+MAIL_HOST     = os.getenv('MAIL_HOST', '')
+MAIL_PORT     = int(os.getenv('MAIL_PORT', '587'))
+MAIL_USER     = os.getenv('MAIL_USER', '')
+MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
+MAIL_FROM     = os.getenv('MAIL_FROM', '')
+
+ESTADO_PENDIENTE = 'pendiente'
+ESTADO_PAGADA    = 'pagada'
+ESTADO_VENCIDA   = 'vencida'
+
+HORAS_LIMITE_CANCELACION = 24
+
+ERROR_CODE_COMPRA_NOT_FOUND      = 'compra.not.found'
+ERROR_CODE_COMPRA_VENCIDA        = 'compra.vencida'
+ERROR_CODE_COMPRA_NO_CONFIRMABLE = 'compra.no.confirmable'
+ERROR_CODE_COMPRA_SIN_FACTURA    = 'compra.sin.factura'

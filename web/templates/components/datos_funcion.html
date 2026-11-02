@@ -1,0 +1,9 @@
+<div class="checkout-datos{% if clase_extra %} {{ clase_extra }}{% endif %}">
+    <p class="checkout-pelicula">{{ funcion.pelicula }}</p>
+    <p>{{ funcion.sala }}</p>
+    <p>{{ funcion.fecha_hora }}</p>
+    <p>
+        Fila {{ butacas[0].fila }} - asientos
+        {% for b in butacas %}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+</div>
