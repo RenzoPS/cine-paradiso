@@ -28,8 +28,6 @@ def listar():
     fecha_filtro = request.args.get('fecha', 'todos')
     genero_filtro = request.args.get('genero', 'Todos')
     query_busqueda = request.args.get('q', '').strip()
-
-    # Más adelante se obtienen desde el servicio que consume la API
     peliculas = PELICULAS
 
     return render_template(
