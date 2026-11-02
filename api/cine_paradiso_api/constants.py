@@ -27,6 +27,16 @@ LIMIT_MIN      = 1
 LIMIT_MAX      = 100
 OFFSET_DEFAULT = 0
 
+TOKEN_COOKIE_NOMBRE     = 'token_sesion'
+TOKEN_DURACION_SEGUNDOS = 86400
+ROL_ADMIN               = 'admin'
+ROL_CLIENTE             = 'cliente'
+
+ERROR_CODE_AUTH_TOKEN_MISSING = 'auth.token.missing'
+ERROR_CODE_AUTH_TOKEN_EXPIRED = 'auth.token.expired'
+ERROR_CODE_AUTH_TOKEN_INVALID = 'auth.token.invalid'
+ERROR_CODE_AUTH_ACCESS_DENIED = 'auth.access.denied'
+
 ERROR_CODE_INVALID_BODY      = 'invalid.body'
 ERROR_CODE_INVALID_FORMAT    = 'invalid.format'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
