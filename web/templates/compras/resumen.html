@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumen de compra - Cine Paradiso{% endblock %}
+
+{% block content %}
+<section class="checkout card">
+    <h1 class="checkout-title">Resumen de compra</h1>
+
+    <div class="checkout-funcion">
+        {% if funcion.poster_url %}
+        <img src="{{ funcion.poster_url }}" alt="Afiche de {{ funcion.pelicula }}" class="checkout-poster">
+        {% else %}
+        <div class="checkout-poster checkout-poster-vacio" aria-hidden="true">Sin afiche</div>
+        {% endif %}
+        <div>
+            <p class="checkout-pelicula">{{ funcion.pelicula }}</p>
+            <p>{{ funcion.sala }}</p>
+            <p>{{ funcion.fecha_hora }}</p>
+        </div>
+    </div>
+
+    <p class="checkout-aviso">La reserva vence en {{ minutos_restantes }} minutos</p>
+
+    <ul class="checkout-lista">
+        <li class="checkout-fila">
+            Fila {{ butacas[0].fila }} - asientos
+            {% for b in butacas %}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </li>
+        {% for s in servicios %}
+        <li class="checkout-fila">{{ s.nombre }} x{{ s.cantidad }}</li>
+        {% endfor %}
+    </ul>
+
+    <p class="checkout-total"><span>TOTAL</span><span>$ {{ total }}</span></p>
+
+    <div class="checkout-acciones">
+        <form method="post" action="{{ url_for('compras.confirmar', id_compra=compra.id_compra) }}">
+            <button type="submit" class="btn btn-primary">Confirmar compra</button>
+        </form>
+
+        <form method="post" action="{{ url_for('compras.abandonar', id_compra=compra.id_compra) }}">
+            <button type="submit" class="btn btn-outline">Abandonar compra</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
