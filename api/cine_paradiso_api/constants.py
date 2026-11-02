@@ -57,6 +57,11 @@ MAIL_FROM     = os.getenv('MAIL_FROM', '')
 ESTADO_PENDIENTE = 'pendiente'
 ESTADO_PAGADA    = 'pagada'
 ESTADO_VENCIDA   = 'vencida'
+ESTADO_USADA     = 'usada'
+ESTADO_CANCELADA = 'cancelada'
+
+QR_SALT   = 'qr-compra'
+QR_ESCALA = 8
 
 HORAS_LIMITE_CANCELACION = 24
 
@@ -64,3 +69,11 @@ ERROR_CODE_COMPRA_NOT_FOUND      = 'compra.not.found'
 ERROR_CODE_COMPRA_VENCIDA        = 'compra.vencida'
 ERROR_CODE_COMPRA_NO_CONFIRMABLE = 'compra.no.confirmable'
 ERROR_CODE_COMPRA_SIN_FACTURA    = 'compra.sin.factura'
+
+ERROR_CODE_QR_INVALIDO     = 'qr.invalid'
+ERROR_CODE_QR_SIN_EMITIR   = 'qr.not.issued'
+ERROR_CODE_QR_UTILIZADO    = 'qr.already.used'
+ERROR_CODE_QR_CANCELADO    = 'qr.cancelled'
+ERROR_CODE_QR_NO_PAGADO    = 'qr.not.paid'
+ERROR_CODE_QR_OTRA_FUNCION = 'qr.wrong.function'
+ERROR_CODE_QR_OTRO_DIA     = 'qr.wrong.date'
