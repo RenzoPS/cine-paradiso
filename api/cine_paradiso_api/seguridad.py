@@ -12,6 +12,13 @@ from cine_paradiso_api.constants import (
 )
 from cine_paradiso_api.utils import ErrorAPI
 
+def _crear_serializador():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+
+def crear_token(id_usuario, rol):
+    return _crear_serializador().dumps({'id_usuario': id_usuario, 'rol': rol})
+
 
 def obtener_datos_token():
     token = request.cookies.get(TOKEN_COOKIE_NOMBRE)
@@ -25,8 +32,7 @@ def obtener_datos_token():
         )
 
     try:
-        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        return serializer.loads(token, max_age=TOKEN_DURACION_SEGUNDOS)
+        return _crear_serializador().loads(token, max_age=TOKEN_DURACION_SEGUNDOS)
     except SignatureExpired:
         raise ErrorAPI(
             code=ERROR_CODE_AUTH_TOKEN_EXPIRED,
