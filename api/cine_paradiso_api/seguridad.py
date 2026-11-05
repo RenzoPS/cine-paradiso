@@ -1,6 +1,11 @@
-from functools import wraps
 from flask import request
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+from itsdangerous import (
+    URLSafeTimedSerializer,
+    BadSignature,
+    SignatureExpired,
+)
+
 from cine_paradiso_api.constants import (
     API_SECRET_KEY,
     ERROR_CODE_AUTH_ACCESS_DENIED,
@@ -11,14 +16,19 @@ from cine_paradiso_api.constants import (
     TOKEN_COOKIE_NOMBRE,
     TOKEN_DURACION_SEGUNDOS,
 )
+
 from cine_paradiso_api.utils import ErrorAPI
+
 
 def _crear_serializador():
     return URLSafeTimedSerializer(API_SECRET_KEY)
 
 
 def crear_token(id_usuario, rol):
-    return _crear_serializador().dumps({'id_usuario': id_usuario, 'rol': rol})
+    return _crear_serializador().dumps({
+        'id_usuario': id_usuario,
+        'rol': rol,
+    })
 
 
 def obtener_datos_token():
@@ -33,7 +43,11 @@ def obtener_datos_token():
         )
 
     try:
-        return _crear_serializador().loads(token, max_age=TOKEN_DURACION_SEGUNDOS)
+        return _crear_serializador().loads(
+            token,
+            max_age=TOKEN_DURACION_SEGUNDOS
+        )
+
     except SignatureExpired:
         raise ErrorAPI(
             code=ERROR_CODE_AUTH_TOKEN_EXPIRED,
@@ -41,6 +55,7 @@ def obtener_datos_token():
             description="Tu sesion ha expirado. Por favor, vuelve a iniciar sesion.",
             status=401
         )
+
     except BadSignature:
         raise ErrorAPI(
             code=ERROR_CODE_AUTH_TOKEN_INVALID,
@@ -50,28 +65,19 @@ def obtener_datos_token():
         )
 
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        datos_usuario = obtener_datos_token()
-
-        if datos_usuario.get('rol') != ROL_ADMIN:
-            raise ErrorAPI(
-                code=ERROR_CODE_AUTH_ACCESS_DENIED,
-                message="Acceso denegado",
-                description="No tienes los permisos de administrador requeridos para esta accion.",
-                status=403
-            )
-
-        return f(*args, **kwargs)
-
-    return decorated_function
+def verificar_autenticacion():
+    return obtener_datos_token()
 
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        obtener_datos_token()
-        return f(*args, **kwargs)
+def verificar_administrador():
+    datos_usuario = verificar_autenticacion()
 
-    return decorated_function
+    if datos_usuario.get('rol') != ROL_ADMIN:
+        raise ErrorAPI(
+            code=ERROR_CODE_AUTH_ACCESS_DENIED,
+            message="Acceso denegado",
+            description="No tienes los permisos de administrador requeridos para esta accion.",
+            status=403
+        )
+
+    return datos_usuario
