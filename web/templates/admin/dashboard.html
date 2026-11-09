@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Administración - Cine Paradiso{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <section class="card admin-panel">
+        <header class="admin-header">
+            <h1 class="admin-title">Panel de Administración</h1>
+            <p class="admin-greeting">Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}</p>
+        </header>
+
+        <div class="admin-modules-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            <article class="card admin-module-card">
+                <h3>Películas</h3>
+                <p>Gestión del catálogo, carga y edición de títulos cinematográficos.</p>
+            </article>
+
+            <article class="card admin-module-card">
+                <h3>Funciones</h3>
+                <p>Programación de horarios, salas y asignación de proyecciones.</p>
+            </article>
+
+            <article class="card admin-module-card">
+                <h3>Servicios</h3>
+                <p>Administración de combos, confitería y servicios adicionales.</p>
+            </article>
+
+            <article class="card admin-module-card">
+                <h3>Métricas</h3>
+                <p>Visualización de estadísticas de ventas, ocupación y reportes de gestión.</p>
+            </article>
+        </div>
+    </section>
+</div>
+{% endblock %}
