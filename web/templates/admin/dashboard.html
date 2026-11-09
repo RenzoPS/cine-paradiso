@@ -3,34 +3,36 @@
 {% block title %}Panel de Administración - Cine Paradiso{% endblock %}
 
 {% block content %}
-<div class="container admin-container">
-    <section class="card admin-panel">
-        <header class="admin-header">
-            <h1 class="admin-title">Panel de Administración</h1>
-            <p class="admin-greeting">Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}</p>
-        </header>
+<section class="card admin-panel">
+    <header class="cartelera-title-group">
+        <h1 class="cartelera-title">
+            Panel de <span class="brand-accent">Administración</span>
+        </h1>
+        <p class="cartelera-subtitle">
+            Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}. Seleccioná un módulo de gestión.
+        </p>
+    </header>
 
-        <div class="admin-modules-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-            <article class="card admin-module-card">
-                <h3>Películas</h3>
-                <p>Gestión del catálogo, carga y edición de títulos cinematográficos.</p>
-            </article>
+    <div class="movies-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 1.5rem;">
+        <article class="card">
+            <h2 class="section-subtitle">Películas</h2>
+            <p class="functions-help">Búsqueda e importación desde TMDB, catálogo y bajas lógicas.</p>
+        </article>
 
-            <article class="card admin-module-card">
-                <h3>Funciones</h3>
-                <p>Programación de horarios, salas y asignación de proyecciones.</p>
-            </article>
+        <article class="card">
+            <h2 class="section-subtitle">Funciones</h2>
+            <p class="functions-help">Programación de horarios, fechas y asignación de salas.</p>
+        </article>
 
-            <article class="card admin-module-card">
-                <h3>Servicios</h3>
-                <p>Administración de combos, confitería y servicios adicionales.</p>
-            </article>
+        <article class="card">
+            <h2 class="section-subtitle">Servicios</h2>
+            <p class="functions-help">Gestión de combos del candy bar, confitería y adicionales.</p>
+        </article>
 
-            <article class="card admin-module-card">
-                <h3>Métricas</h3>
-                <p>Visualización de estadísticas de ventas, ocupación y reportes de gestión.</p>
-            </article>
-        </div>
-    </section>
-</div>
+        <article class="card">
+            <h2 class="section-subtitle">Estadísticas</h2>
+            <p class="functions-help">Ocupación de salas, ventas por género y reportes comerciales.</p>
+        </article>
+    </div>
+</section>
 {% endblock %}
