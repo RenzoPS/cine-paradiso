@@ -3,35 +3,115 @@
 {% block title %}Panel de Administración - Cine Paradiso{% endblock %}
 
 {% block content %}
-<section class="card admin-panel">
+<section class="admin-dashboard-container">
     <header class="cartelera-title-group">
         <h1 class="cartelera-title">
             Panel de <span class="brand-accent">Administración</span>
         </h1>
         <p class="cartelera-subtitle">
-            Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}. Seleccioná un módulo de gestión.
+            Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}. Supervisión general y gestión de salas.
         </p>
     </header>
 
-    <div class="movies-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 1.5rem;">
-        <article class="card">
-            <h2 class="section-subtitle">Películas</h2>
-            <p class="functions-help">Búsqueda e importación desde TMDB, catálogo y bajas lógicas.</p>
+    {# Métricas Rápidas / Resumen Operativo #}
+    <div class="movies-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+        <article class="card text-center" style="padding: 1.25rem;">
+            <span class="price-label">Locales Activos</span>
+            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">3</p>
+            <span class="functions-help" style="font-size: 0.75rem;">Centro · Belgrano · Recoleta</span>
         </article>
 
-        <article class="card">
-            <h2 class="section-subtitle">Funciones</h2>
-            <p class="functions-help">Programación de horarios, fechas y asignación de salas.</p>
+        <article class="card text-center" style="padding: 1.25rem;">
+            <span class="price-label">Funciones Hoy</span>
+            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">12</p>
+            <span class="functions-help" style="font-size: 0.75rem;">Todas las salas operativas</span>
         </article>
 
-        <article class="card">
-            <h2 class="section-subtitle">Servicios</h2>
-            <p class="functions-help">Gestión de combos del candy bar, confitería y adicionales.</p>
+        <article class="card text-center" style="padding: 1.25rem;">
+            <span class="price-label">Ocupación Promedio</span>
+            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">78%</p>
+            <span class="functions-help" style="font-size: 0.75rem;">Últimas 24 horas</span>
         </article>
 
-        <article class="card">
-            <h2 class="section-subtitle">Estadísticas</h2>
-            <p class="functions-help">Ocupación de salas, ventas por género y reportes comerciales.</p>
+        <article class="card text-center" style="padding: 1.25rem;">
+            <span class="price-label">Servicios Habilitados</span>
+            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">Activos</p>
+            <span class="functions-help" style="font-size: 0.75rem;">Candy bar y combos</span>
+        </article>
+    </div>
+
+    {# Módulos de Gestión del Backoffice #}
+    <h2 class="section-subtitle" style="margin-bottom: 1rem;">Módulos de Gestión</h2>
+    <div class="movies-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
+        
+        {# Gestión de Películas #}
+        <article class="card movie-card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <line x1="2" y1="7" x2="7" y2="7"></line>
+                    <line x1="2" y1="17" x2="7" y2="17"></line>
+                    <line x1="17" y1="17" x2="22" y2="17"></line>
+                    <line x1="17" y1="7" x2="22" y2="7"></line>
+                </svg>
+            </div>
+            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Películas</h3>
+            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
+                Búsqueda e importación directa desde TMDB, asignación de géneros, períodos en cartelera y baja lógica.
+            </p>
+            <a href="#" class="btn btn-sm btn-outline">Gestionar Catálogo</a>
+        </article>
+
+        {# Programación de Funciones #}
+        <article class="card movie-card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Funciones</h3>
+            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
+                Programación de horarios por sala y sucursal, definición de precios por función y grilla de proyección.
+            </p>
+            <a href="#" class="btn btn-sm btn-outline">Programar Horarios</a>
+        </article>
+
+        {# Confitería y Servicios #}
+        <article class="card movie-card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                    <line x1="6" y1="1" x2="6" y2="4"></line>
+                    <line x1="10" y1="1" x2="10" y2="4"></line>
+                    <line x1="14" y1="1" x2="14" y2="4"></line>
+                </svg>
+            </div>
+            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Candy Bar & Extras</h3>
+            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
+                Administración de combos de pochoclos, bebidas y adicionales disponibles en el flujo de compra.
+            </p>
+            <a href="#" class="btn btn-sm btn-outline">Configurar Servicios</a>
+        </article>
+
+        {# Reportes y Estadísticas #}
+        <article class="card movie-card" style="padding: 1.5rem;">
+            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+            </div>
+            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Métricas</h3>
+            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
+                Reportes comerciales: ocupación por función, ventas por género, franjas horarias y cancelaciones.
+            </p>
+            <a href="#" class="btn btn-sm btn-outline">Ver Reportes</a>
         </article>
     </div>
 </section>
