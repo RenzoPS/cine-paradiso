@@ -6,6 +6,8 @@ from cine_paradiso_api import repositories
 from cine_paradiso_api.constants import API_PORT, BASE_URL
 from cine_paradiso_api.routes.compras import compras_bp
 from cine_paradiso_api.routes.peliculas import peliculas_bp
+from cine_paradiso_api.routes.auth import auth_bp
+from cine_paradiso_api.routes.usuarios import usuarios_bp
 from cine_paradiso_api.utils import ErrorAPI, construir_error_api
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
@@ -17,7 +19,8 @@ repositories.init_app(app)
 
 app.register_blueprint(compras_bp, url_prefix=BASE_URL)
 app.register_blueprint(peliculas_bp, url_prefix=BASE_URL)
-
+app.register_blueprint(auth_bp, url_prefix=BASE_URL)
+app.register_blueprint(usuarios_bp, url_prefix=BASE_URL)
 
 @app.errorhandler(ErrorAPI)
 def manejar_error_api(e: ErrorAPI):
