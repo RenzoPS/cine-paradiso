@@ -32,10 +32,12 @@ def _validar_largo(texto: str, nombre: str, maximo: int) -> str:
 
 
 def _texto_opcional(valor, nombre: str, maximo: int) -> str | None:
-    if valor is None or (isinstance(valor, str) and not valor.strip()):
-        return None
+    texto = None
+    es_vacio = valor is None or (isinstance(valor, str) and not valor.strip())
+    if not es_vacio:
+        texto = _validar_largo(validar_string_no_vacio(valor, nombre), nombre, maximo)
 
-    return _validar_largo(validar_string_no_vacio(valor, nombre), nombre, maximo)
+    return texto
 
 
 def validar_precio(valor) -> Decimal:
@@ -89,8 +91,7 @@ def validar_estado(body) -> bool:
 
 def leer_filtro_activo(args) -> bool | None:
     rechazar_campos_desconocidos(args, PARAMETROS_PAGINACION | {'activo'}, 'query string')
-
-    if 'activo' not in args:
-        return None
-
-    return validar_booleano(args['activo'], 'activo')
+    activo = None
+    if 'activo'in args:
+        activo = validar_booleano(args['activo'], 'activo')
+    return activo
