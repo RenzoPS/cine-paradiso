@@ -89,6 +89,7 @@ def _armar_factura(compra: dict) -> dict:
     """
     entradas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
     servicios = db_compras.obtener_servicios_de_compra(compra['id_compra'])
+    datos_funcion = db_compras.obtener_datos_para_mail(compra['id_compra'])
 
     lista_entradas = []
     subtotal_entradas = Decimal('0')
@@ -117,6 +118,11 @@ def _armar_factura(compra: dict) -> dict:
         'numero_factura': compra['numero_factura'],
         'estado': compra['estado'],
         'fecha_pago': formatear_fecha_hora(compra['fecha_pago']),
+        'funcion': {                                                           
+            'pelicula': datos_funcion['titulo'],
+            'sala': datos_funcion['sala'],
+            'fecha_hora': datos_funcion['fecha_hora'].strftime('%d/%m/%Y %H:%M'),
+        },
         'entradas': lista_entradas,
         'servicios': lista_servicios,
         'subtotal_entradas': str(subtotal_entradas),
@@ -150,9 +156,9 @@ def _enviar_mail_confirmacion(compra: dict, factura: dict) -> bool:
         datos = db_compras.obtener_datos_para_mail(compra['id_compra'])
 
         cuerpo_mail = mail_service.armar_mail(CONFIRMACION_COMPRA, {
-            'pelicula': datos['titulo'],
-            'sala': datos['sala'],
-            'fecha_hora': datos['fecha_hora'].strftime('%d/%m/%Y %H:%M'),
+            'pelicula': factura['funcion']['pelicula'],
+            'sala': factura['funcion']['sala'],
+            'fecha_hora': factura['funcion']['fecha_hora'],
             'butacas': _texto_butacas(factura['entradas']),
             'cantidad_entradas': len(factura['entradas']),
             'total_entradas': factura['subtotal_entradas'],

@@ -657,6 +657,18 @@ components:
         fecha_pago:
           type: string
           example: '2026-11-18T20:30:00-03:00'
+        funcion:         
+          type: object
+          properties:
+            pelicula:
+              type: string
+              example: Volver al Futuro
+            sala:
+              type: string
+              example: Sala 1
+            fecha_hora:
+              type: string
+              example: '20/11/2026 21:00'
         entradas:
           type: array
           items:
