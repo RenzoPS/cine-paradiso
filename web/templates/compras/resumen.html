@@ -2,6 +2,11 @@
 
 {% block title %}Resumen de compra - Cine Paradiso{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+{% endblock %}
+
+
 {% block content %}
 <section class="checkout card">
     <h1 class="checkout-title">Resumen de compra</h1>
@@ -19,7 +24,7 @@
         </div>
     </div>
 
-    <p class="checkout-aviso">La reserva vence en {{ minutos_restantes }} minutos</p>
+    <p class="checkout-aviso" data-segundos="{{ segundos_restantes }}">La reserva vence en <span class="checkout-contador"></span></p>
 
     <ul class="checkout-lista">
         <li class="checkout-fila">
@@ -35,7 +40,7 @@
 
     <div class="checkout-acciones">
         <form method="post" action="{{ url_for('compras.confirmar', id_compra=compra.id_compra) }}">
-            <button type="submit" class="btn btn-primary">Confirmar compra</button>
+            <button type="submit" class="btn btn-primary" data-confirmar>Confirmar compra</button>
         </form>
 
         <form method="post" action="{{ url_for('compras.abandonar', id_compra=compra.id_compra) }}">
@@ -43,4 +48,8 @@
         </form>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
 {% endblock %}
