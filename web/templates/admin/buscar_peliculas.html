@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Buscar en TMDB - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ url_for('admin.peliculas') }}">Películas</a>
+        <span aria-hidden="true">/</span>
+        <span>Buscar en TMDB</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Catálogo externo</p>
+        <h1>Buscar películas en TMDB</h1>
+        <p>Encontrá una película para revisar antes de importarla al catálogo local.</p>
+    </header>
+
+    <section class="admin-panel" aria-labelledby="tmdb-search-heading">
+        <h2 id="tmdb-search-heading">Buscar por título</h2>
+        <form class="admin-search-form" method="get" action="{{ url_for('admin.buscar_peliculas_tmdb') }}">
+            <label for="tmdb-query">Título de la película</label>
+            <div class="admin-search-controls">
+                <input
+                    id="tmdb-query"
+                    name="q"
+                    type="search"
+                    value="{{ consulta }}"
+                    placeholder="Ej.: Cinema Paradiso"
+                    autocomplete="off"
+                >
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </div>
+        </form>
+
+        {% if consulta %}
+        <section class="admin-results" aria-labelledby="tmdb-results-heading">
+            <h2 id="tmdb-results-heading">Resultados para “{{ consulta }}”</h2>
+            {% if resultados %}
+            <div class="admin-result-list">
+                {% for pelicula in resultados %}
+                <article class="admin-result">
+                    {% if pelicula.poster_url %}
+                    <img src="{{ pelicula.poster_url }}" alt="Póster de {{ pelicula.titulo }}" loading="lazy">
+                    {% else %}
+                    <div class="admin-result-poster-placeholder" aria-hidden="true">Sin póster</div>
+                    {% endif %}
+                    <div class="admin-result-content">
+                        <h3>{{ pelicula.titulo }}</h3>
+                        {% if pelicula.titulo_original != pelicula.titulo %}
+                        <p class="admin-movie-meta">Título original: {{ pelicula.titulo_original }}</p>
+                        {% endif %}
+                        <p class="admin-result-date">
+                            {{ pelicula.fecha_lanzamiento or 'Fecha de estreno no disponible' }}
+                        </p>
+                        <p>{{ pelicula.sinopsis or 'Sin sinopsis disponible.' }}</p>
+                        <p class="admin-movie-meta">
+                            ID TMDB: {{ pelicula.tmdb_id }} ·
+                            {{ pelicula.tmdb_genero_ids | length }} géneros asociados
+                        </p>
+                        <form method="post" action="{{ url_for('admin.importar_pelicula') }}">
+                            <input type="hidden" name="tmdb_id" value="{{ pelicula.tmdb_id }}">
+                            <input type="hidden" name="q" value="{{ consulta }}">
+                            <button class="btn btn-sm btn-outline" type="submit">
+                                Importar al catálogo
+                            </button>
+                        </form>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="admin-empty-state">No se encontraron películas para esa búsqueda.</p>
+            {% endif %}
+        </section>
+        {% else %}
+        <p class="admin-empty-state">Ingresá un título para buscar en TMDB.</p>
+        {% endif %}
+    </section>
+
+    <a class="admin-back-link" href="{{ url_for('admin.peliculas') }}">Volver al catálogo</a>
+</section>
+{% endblock %}

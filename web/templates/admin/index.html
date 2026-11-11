@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Backoffice - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Administración</p>
+        <h1>Backoffice</h1>
+        <p>Gestioná el catálogo y las operaciones de Cine Paradiso.</p>
+    </header>
+
+    <aside class="admin-notice" role="status">
+        Iniciaste sesión como administrador. Desde aquí podés gestionar el catálogo disponible en el Backoffice.
+    </aside>
+
+    <div class="admin-card-grid">
+        <a class="admin-card" href="{{ url_for('admin.peliculas') }}">
+            <span class="admin-card-label">Catálogo</span>
+            <h2>Películas</h2>
+            <p>Consultá el catálogo y prepará la importación desde TMDB.</p>
+            <span class="admin-card-action">Administrar películas</span>
+        </a>
+
+        <article class="admin-card admin-card-disabled" aria-disabled="true">
+            <span class="admin-card-label">Programación</span>
+            <h2>Funciones y salas</h2>
+            <p>La gestión de funciones y salas estará disponible en una próxima etapa.</p>
+            <span class="admin-card-action">Próximamente</span>
+        </article>
+
+        <article class="admin-card admin-card-disabled" aria-disabled="true">
+            <span class="admin-card-label">Informes</span>
+            <h2>Estadísticas</h2>
+            <p>Los indicadores administrativos estarán disponibles en una próxima etapa.</p>
+            <span class="admin-card-action">Próximamente</span>
+        </article>
+    </div>
+</section>
+{% endblock %}
