@@ -45,8 +45,8 @@ def obtener_peliculas_cartelera(sucursal=None, fecha=None, genero=None, busqueda
 
     try:
         datos = respuesta.json()
-        if isinstance(datos, dict) and 'items' in datos:
-            return datos['items']
+        if isinstance(datos, dict):
+            return datos.get('peliculas', [])
         if isinstance(datos, list):
             return datos
         return []
