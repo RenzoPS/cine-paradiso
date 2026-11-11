@@ -190,12 +190,12 @@ Viewer" de VS Code.
 | GET | `/usuarios/me/historial` | Consumos (entradas y servicios) y películas vistas | Cliente |
 | GET | `/usuarios` | Listado de usuarios | Admin |
 | PATCH | `/usuarios/{id_usuario}/rol` | Dar o quitar el rol de admin | Admin |
-| GET | `/peliculas/tmdb?q=` | Busca películas en TMDB | Admin |
-| POST | `/peliculas` | Importa una película de TMDB por `tmdb_id`, con géneros y póster | Admin |
-| GET | `/peliculas` | Listado de películas. Con `?en_cartel=true` es la cartelera; filtros por local, fecha y género | Público |
-| GET | `/peliculas/{id_pelicula}` | Detalle: sinopsis, póster, duración y clasificación | Público |
-| PUT | `/peliculas/{id_pelicula}` | Editar sinopsis, póster, clasificación y período en cartel | Admin |
-| DELETE | `/peliculas/{id_pelicula}` | Baja lógica | Admin |
+| GET | `/peliculas/tmdb?q=` | Busca películas en TMDB para importar al catálogo | Admin |
+| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con géneros y póster y responde `201` | Admin |
+| GET | `/peliculas` | Listado paginado; filtros por título, género, clasificación, estado activo, cartelera, local y fecha | Público |
+| GET | `/peliculas/{id_pelicula}` | Detalle de película con sus géneros | Público |
+| PUT | `/peliculas/{id_pelicula}` | Reemplazar sinopsis, póster, clasificación y período en cartel | Admin |
+| DELETE | `/peliculas/{id_pelicula}` | Baja lógica (`activa=false`); conserva película y asociaciones; repetible | Admin |
 | GET | `/generos` | Géneros disponibles | Público |
 | GET | `/locales` | Listado de locales | Público |
 | POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
@@ -241,6 +241,26 @@ Los listados admiten `_limit` (entre 1 y 100, por defecto 10) y `_offset`
 (mayor o igual a cero, por defecto 0), y devuelven los datos bajo una clave
 descriptiva junto a `_total` y un objeto `_links` con `_first`, `_prev`,
 `_next` y `_last`.
+
+El `PUT /peliculas/{id_pelicula}` requiere enviar todos los campos editables
+(`sinopsis`, `poster_url`, `clasificacion`, `disponible_desde` y
+`disponible_hasta`) en el body. Cada campo admite `null`; el período de
+disponibilidad debe tener ambas fechas nulas o ambas informadas, y la fecha de
+inicio no puede ser posterior a la de fin. Las URL de póster deben usar HTTP o
+HTTPS.
+
+El listado de películas aplica `activa=true` por defecto. Los filtros `id_local`
+y `fecha` buscan películas con funciones activas futuras en ese contexto; `fecha`
+usa `YYYY-MM-DD` en GMT-3 y una fecha anterior a hoy no devuelve películas.
+`en_cartel=true` requiere película activa, período de disponibilidad vigente
+(ambas fechas informadas) y al menos una función activa futura. `en_cartel=false`
+busca las películas que no cumplen esa regla en el contexto opcional de local y/o
+fecha. La cartelera consulta la hora de MySQL en GMT-3, calculada a partir de
+`UTC_TIMESTAMP()`, para no depender de la zona horaria de sesión del servidor.
+
+El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: cambia `activa` a
+`false` sin eliminar la película ni sus asociaciones. Si ya estaba inactiva,
+devuelve igualmente el detalle con `200`.
 
 Las fechas viajan en ISO 8601 con desplazamiento fijo de GMT-3:
 `2026-11-18T20:30:00-03:00`.

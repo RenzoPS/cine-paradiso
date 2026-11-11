@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if pelicula %}
+        {{ pelicula.titulo }} - Cine Paradiso
+    {% else %}
+        Película no encontrada - Cine Paradiso
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb-nav" aria-label="Navegación secundaria">
+    <a href="{{ url_for('cartelera.listar') }}" class="breadcrumb-link">&larr; Volver a la cartelera</a>
+</nav>
+
+{% if pelicula %}
+    <article class="movie-detail-card card">
+        <div class="movie-detail-grid">
+            <div class="movie-detail-poster-wrapper">
+                {% if pelicula.afiche %}
+                    <img src="{{ pelicula.afiche }}" alt="Afiche de {{ pelicula.titulo }}" class="movie-detail-poster">
+                {% else %}
+                    <div class="movie-poster-placeholder" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                            <line x1="7" y1="2" x2="7" y2="22"></line>
+                            <line x1="17" y1="2" x2="17" y2="22"></line>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                        <span>Sin afiche disponible</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="movie-detail-content">
+                <div class="movie-detail-header">
+                    {% if pelicula.clasificacion %}
+                        <span class="movie-badge movie-badge-{{ pelicula.clasificacion | lower | replace('+', 'plus') }}">
+                            {{ pelicula.clasificacion }}
+                        </span>
+                    {% endif %}
+                    {% if pelicula.anio %}
+                        <span class="movie-detail-year">{{ pelicula.anio }}</span>
+                    {% endif %}
+                    {% if pelicula.duracion %}
+                        <span class="movie-detail-duration">&bull; {{ pelicula.duracion }}</span>
+                    {% endif %}
+                </div>
+
+                <h1 class="movie-detail-title">{{ pelicula.titulo }}</h1>
+                {% if pelicula.titulo_original and pelicula.titulo_original != pelicula.titulo %}
+                    <p class="movie-detail-original">Título original: <em>{{ pelicula.titulo_original }}</em></p>
+                {% endif %}
+
+                {% if pelicula.director %}
+                    <p class="movie-detail-director">Dirección: <strong>{{ pelicula.director }}</strong></p>
+                {% endif %}
+
+                {% if pelicula.generos %}
+                    <div class="movie-genres detail-genres">
+                        {% for g in pelicula.generos %}
+                            <span class="genre-tag">{{ g }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if pelicula.sinopsis %}
+                    <div class="movie-synopsis-section">
+                        <h2 class="section-subtitle">Sinopsis</h2>
+                        <p class="movie-synopsis-text">{{ pelicula.sinopsis }}</p>
+                    </div>
+                {% endif %}
+
+                <div class="movie-functions-preview">
+                    <h2 class="section-subtitle">Funciones disponibles</h2>
+                    <p class="functions-help">Las funciones se cargarán automáticamente desde el sistema.</p>
+                </div>
+            </div>
+        </div>
+    </article>
+{% else %}
+    <div class="cartelera-empty card">
+        <h2 class="empty-title">Película no encontrada</h2>
+        <p class="empty-description">
+            El identificador seleccionado no corresponde a ninguna película cargada actualmente.
+        </p>
+        <a href="{{ url_for('cartelera.listar') }}" class="btn btn-primary">
+            Volver a la cartelera
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

@@ -8,4 +8,732 @@ info:
 servers:
   - url: http://localhost:5000/cine_paradiso_api
 
-paths: {}
+paths:
+  /peliculas:
+    get:
+      summary: Listar películas
+      description: |
+        Devuelve las películas del catálogo paginadas. Incluye una lista `generos`
+        por película, ya que el esquema permite asociar varios géneros.
+        Se puede filtrar por título parcial, género exacto, clasificación exacta,
+        estado activo (por defecto `true`), cartelera, local y fecha. Las
+        comparaciones de texto no distinguen mayúsculas. `en_cartel=true` exige
+        película activa, período de disponibilidad vigente y al menos una función
+        activa futura; `en_cartel=false` aplica la condición inversa dentro del
+        contexto de local y fecha solicitado. `id_local` y `fecha` también pueden
+        usarse por separado para filtrar películas con funciones activas futuras.
+        `fecha` usa `YYYY-MM-DD`; una fecha anterior al día actual en GMT-3 no
+        devuelve películas. La disponibilidad nula no cumple la condición de
+        cartelera.
+        Si no hay coincidencias, responde `200` con `peliculas: []` y `_total: 0`.
+      operationId: get_peliculas
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: titulo
+          in: query
+          description: Busca una parte del título.
+          schema:
+            type: string
+            minLength: 1
+        - name: genero
+          in: query
+          description: Filtra por nombre exacto de género.
+          schema:
+            type: string
+            minLength: 1
+        - name: clasificacion
+          in: query
+          description: Filtra por clasificación exacta.
+          schema:
+            type: string
+            minLength: 1
+        - name: activa
+          in: query
+          description: Filtra por estado activo; por defecto se aplica `true`.
+          schema:
+            type: boolean
+            default: true
+        - name: en_cartel
+          in: query
+          description: |
+            `true` busca películas que cumplen la regla de cartelera; `false`
+            busca las que no la cumplen en el contexto de `id_local` y/o `fecha`.
+          schema:
+            type: boolean
+        - name: id_local
+          in: query
+          description: Filtra por películas con funciones activas futuras en este local.
+          schema:
+            type: integer
+            minimum: 1
+        - name: fecha
+          in: query
+          description: |
+            Día calendario de funciones futuras, en formato YYYY-MM-DD y GMT-3.
+            Si es hoy solo considera funciones posteriores al momento actual; fechas
+            anteriores a hoy no devuelven películas.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Listado paginado de películas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeliculasPaginadas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Importar película desde TMDB
+      description: |
+        Importa al catálogo local una película identificada por su ID de TMDB.
+        La API obtiene los datos y géneros desde el detalle de TMDB y crea las
+        asociaciones con los géneros disponibles. La película se crea activa;
+        `clasificacion`, `disponible_desde` y `disponible_hasta` quedan en `null`
+        para configurarlos posteriormente desde el backoffice.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: post_pelicula
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tmdb_id
+              additionalProperties: false
+              properties:
+                tmdb_id:
+                  type: integer
+                  minimum: 1
+                  description: Identificador de la película en TMDB.
+            example:
+              tmdb_id: 11216
+      responses:
+        '201':
+          description: Película importada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+              example:
+                id_pelicula: 4
+                tmdb_id: 11216
+                titulo: Cinema Paradiso
+                sinopsis: Un cineasta recuerda su infancia y su amistad con el proyeccionista del cine de su pueblo.
+                poster_url: https://image.tmdb.org/t/p/w500/example.jpg
+                duracion_min: 155
+                clasificacion: null
+                disponible_desde: null
+                disponible_hasta: null
+                activa: true
+                generos:
+                  - Drama
+                  - Romance
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: TMDB no tiene una película con el ID indicado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película de TMDB ya fue importada al catálogo local.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: TMDB no respondió o devolvió una respuesta inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Falta configurar `TMDB_API_KEY` en el servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /peliculas/tmdb:
+    get:
+      summary: Buscar películas en TMDB
+      description: |
+        Busca películas en TMDB por título, en idioma español de Argentina, y devuelve
+        los campos necesarios para que un administrador pueda elegir una película
+        para importar. La credencial se lee en el servidor desde `TMDB_API_KEY` y no se
+        envía en la solicitud del cliente.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: buscar_peliculas_tmdb
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: q
+          in: query
+          description: Título o parte del título a buscar.
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Búsqueda completada; `resultados` puede estar vacío.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusquedaTMDB'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          description: TMDB no respondió o devolvió una respuesta inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Falta configurar `TMDB_API_KEY` en el servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /peliculas/{id_pelicula}:
+    get:
+      summary: Obtener película por ID
+      operationId: get_pelicula
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Película encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Editar película
+      description: |
+        Reemplaza todos los campos editables de una película. El body debe incluir
+        `sinopsis`, `poster_url`, `clasificacion`, `disponible_desde` y
+        `disponible_hasta`; los campos admiten `null`. Las fechas deben enviarse en
+        Formato de fecha y hora: `YYYY-MM-DDTHH:MM:SS-03:00`. El período debe
+        tener ambas fechas nulas o ambas informadas, y `disponible_desde` no puede
+        ser posterior a `disponible_hasta`.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: put_pelicula
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sinopsis
+                - poster_url
+                - clasificacion
+                - disponible_desde
+                - disponible_hasta
+              additionalProperties: false
+              properties:
+                sinopsis:
+                  type: string
+                  nullable: true
+                poster_url:
+                  type: string
+                  format: uri
+                  description: URL HTTP o HTTPS del póster.
+                  nullable: true
+                clasificacion:
+                  type: string
+                  nullable: true
+                disponible_desde:
+                  type: string
+                  format: date-time
+                  description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+                  nullable: true
+                disponible_hasta:
+                  type: string
+                  format: date-time
+                  description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+                  nullable: true
+            example:
+              sinopsis: Una sinopsis revisada para el catálogo.
+              poster_url: https://example.com/poster.jpg
+              clasificacion: ATP
+              disponible_desde: '2026-11-01T00:00:00-03:00'
+              disponible_hasta: '2026-12-31T23:59:59-03:00'
+      responses:
+        '200':
+          description: Película actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Dar de baja una película
+      description: |
+        Realiza una baja lógica estableciendo `activa` en `false`; no elimina la
+        película ni sus géneros, funciones o compras asociadas. Repetir la solicitud
+        para una película ya inactiva también responde correctamente con su estado
+        actual.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: eliminar_pelicula
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Película desactivada o que ya estaba inactiva.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /compras/{id_compra}/confirmar:
+    post:
+      summary: "Confirmar una compra"
+      description: |
+        Confirma la compra: pasa de `pendiente` a `pagada`, calcula el total, genera la factura y envía el mail. Si la compra ya estaba pagada, devuelve la misma factura y no envía otro mail. Si el mail falla, la compra igual queda pagada (`mail_enviado: false`).
+      operationId: post_confirmar_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra confirmada, o ya confirmada anteriormente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La reserva venció (`compra.vencida`) o la compra no está pendiente (`compra.no.confirmable`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/factura:
+    get:
+      summary: "Obtener la factura de una compra"
+      description: Devuelve la factura de una compra propia que ya fue pagada.
+      operationId: get_factura_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Factura de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra todavía no fue pagada (`compra.sin.factura`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    TokenSesion:
+      type: apiKey
+      in: cookie
+      name: token_sesion
+  parameters:
+    Limit:
+      name: _limit
+      in: query
+      required: false
+      description: Cantidad de elementos entre 1 y 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    Offset:
+      name: _offset
+      in: query
+      required: false
+      description: Elementos a omitir; debe ser mayor o igual a cero.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+  responses:
+    BadRequest:
+      description: Parámetros inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Error interno al procesar la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No hay una sesión válida o el token expiró.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: La sesión no tiene permisos de administrador.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    PeliculasPaginadas:
+      type: object
+      required:
+        - peliculas
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        peliculas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pelicula'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    Pelicula:
+      type: object
+      required:
+        - id_pelicula
+        - tmdb_id
+        - titulo
+        - sinopsis
+        - poster_url
+        - duracion_min
+        - clasificacion
+        - disponible_desde
+        - disponible_hasta
+        - activa
+        - generos
+      properties:
+        id_pelicula:
+          type: integer
+          example: 1
+        tmdb_id:
+          type: integer
+          nullable: true
+          example: 11216
+        titulo:
+          type: string
+        sinopsis:
+          type: string
+          nullable: true
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        duracion_min:
+          type: integer
+          nullable: true
+        clasificacion:
+          type: string
+          nullable: true
+        disponible_desde:
+          type: string
+          format: date-time
+          nullable: true
+        disponible_hasta:
+          type: string
+          format: date-time
+          nullable: true
+        activa:
+          type: boolean
+        generos:
+          type: array
+          items:
+            type: string
+    BusquedaTMDB:
+      type: object
+      required:
+        - resultados
+      properties:
+        resultados:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeliculaTMDB'
+    PeliculaTMDB:
+      type: object
+      required:
+        - tmdb_id
+        - titulo
+        - titulo_original
+        - sinopsis
+        - fecha_lanzamiento
+        - poster_url
+        - tmdb_genero_ids
+      properties:
+        tmdb_id:
+          type: integer
+        titulo:
+          type: string
+        titulo_original:
+          type: string
+        sinopsis:
+          type: string
+        fecha_lanzamiento:
+          type: string
+          format: date
+          nullable: true
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        tmdb_genero_ids:
+          type: array
+          items:
+            type: integer
+    EnlacesPaginacion:
+      type: object
+      description: Rutas relativas al servidor, con el prefijo `/cine_paradiso_api`.
+      required:
+        - _first
+        - _prev
+        - _next
+        - _last
+      properties:
+        _first:
+          type: string
+        _prev:
+          type: string
+          nullable: true
+        _next:
+          type: string
+          nullable: true
+        _last:
+          type: string
+    Factura:
+      type: object
+      properties:
+        id_compra:
+          type: integer
+          example: 7
+        numero_factura:
+          type: string
+          example: '00000007'
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pagada
+        fecha_pago:
+          type: string
+          example: '2026-11-18T20:30:00-03:00'
+        funcion:         
+          type: object
+          properties:
+            pelicula:
+              type: string
+              example: Volver al Futuro
+            sala:
+              type: string
+              example: Sala 1
+            fecha_hora:
+              type: string
+              example: '20/11/2026 21:00'
+        entradas:
+          type: array
+          items:
+            type: object
+            properties:
+              fila:
+                type: string
+                example: E
+              numero:
+                type: integer
+                example: 8
+              precio_unitario:
+                type: string
+                example: '2500.00'
+        servicios:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Pochoclo
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1200.00'
+              subtotal:
+                type: string
+                example: '2400.00'
+        subtotal_entradas:
+          type: string
+          example: '5000.00'
+        subtotal_servicios:
+          type: string
+          example: '2400.00'
+        total:
+          type: string
+          example: '7400.00'
+        mail_enviado:
+          type: boolean
+          nullable: true
+          description: |
+            `true` si el mail se envió y `false` si falló. `null` si no se intentó enviar (la compra ya estaba pagada, o es la consulta de la factura).
+    ErrorResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - code
+              - message
+              - level
+              - description
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              level:
+                type: string
+              description:
+                type: string
