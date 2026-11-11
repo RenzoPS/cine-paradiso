@@ -14,11 +14,13 @@
 </nav>
 
 {% if pelicula %}
+    {% set poster = pelicula.poster_url or pelicula.afiche %}
+    {% set duracion_texto = (pelicula.duracion_min ~ ' min') if pelicula.duracion_min else pelicula.duracion %}
     <article class="movie-detail-card card">
         <div class="movie-detail-grid">
             <div class="movie-detail-poster-wrapper">
-                {% if pelicula.afiche %}
-                    <img src="{{ pelicula.afiche }}" alt="Afiche de {{ pelicula.titulo }}" class="movie-detail-poster">
+                {% if poster %}
+                    <img src="{{ poster }}" alt="Afiche de {{ pelicula.titulo }}" class="movie-detail-poster">
                 {% else %}
                     <div class="movie-poster-placeholder" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -42,8 +44,8 @@
                     {% if pelicula.anio %}
                         <span class="movie-detail-year">{{ pelicula.anio }}</span>
                     {% endif %}
-                    {% if pelicula.duracion %}
-                        <span class="movie-detail-duration">&bull; {{ pelicula.duracion }}</span>
+                    {% if duracion_texto %}
+                        <span class="movie-detail-duration">&bull; {{ duracion_texto }}</span>
                     {% endif %}
                 </div>
 
