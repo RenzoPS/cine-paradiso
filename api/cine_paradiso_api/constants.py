@@ -40,10 +40,22 @@ TOKEN_DURACION_SEGUNDOS = 86400
 ROL_ADMIN               = 'admin'
 ROL_CLIENTE             = 'cliente'
 
+NOMBRE_MAX_LARGO = 80
+APELLIDO_MAX_LARGO = 80
+EMAIL_MAX_LARGO = 120
+CONTRASENA_MIN_LARGO = 8
+CONTRASENA_MAX_LARGO = 128
+
+CAMPOS_REGISTRO = frozenset({'nombre','apellido','email','contrasena',})
+CAMPOS_LOGIN = frozenset({'email','contrasena',})
+
 ERROR_CODE_AUTH_TOKEN_MISSING = 'auth.token.missing'
 ERROR_CODE_AUTH_TOKEN_EXPIRED = 'auth.token.expired'
 ERROR_CODE_AUTH_TOKEN_INVALID = 'auth.token.invalid'
 ERROR_CODE_AUTH_ACCESS_DENIED = 'auth.access.denied'
+ERROR_CODE_AUTH_CREDENCIALES_INVALIDAS = 'auth.credentials.invalid'
+ERROR_CODE_USUARIO_EMAIL_DUPLICADO = 'usuario.email.duplicated'
+ERROR_CODE_USUARIO_NO_ENCONTRADO = 'usuario.not.found'
 
 ERROR_CODE_INVALID_BODY      = 'invalid.body'
 ERROR_CODE_INVALID_FORMAT    = 'invalid.format'
