@@ -292,6 +292,10 @@ textarea {
     width: 100%;
 }
 
+.nav-auth-container form {
+    margin: 0;
+}
+
 .user-greeting {
     display: flex;
     align-items: center;

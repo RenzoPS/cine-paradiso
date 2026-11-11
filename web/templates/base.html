@@ -101,7 +101,7 @@
                                 <circle cx="12" cy="7" r="4"></circle>
                             </svg>
                         </span>
-                        <span class="user-name">{{ session.get('usuario').get('nombre', 'Usuario') }}</span>
+                        <span class="user-name">{{ session.get('usuario').get('nombre') or session.get('usuario').get('email', 'Usuario') }}</span>
                     </div>
 
                     {% if session.get('usuario').get('rol') == 'admin' %}
@@ -110,20 +110,24 @@
                     </a>
                     {% endif %}
 
+                    {% if 'usuarios.perfil' in vistas or 'auth.perfil' in vistas %}
                     <a href="{{ url_perfil }}" class="nav-link">
                         Mi Perfil
                     </a>
+                    {% endif %}
 
-                    <a href="{{ url_logout }}" class="btn btn-sm btn-outline">
-                        Cerrar sesión
-                    </a>
+                    <form method="post" action="{{ url_logout }}">
+                        <button class="btn btn-sm btn-outline" type="submit">Cerrar sesión</button>
+                    </form>
                     {% else %}
                     <a href="{{ url_login }}" class="nav-link">
                         Iniciar sesión
                     </a>
+                    {% if 'auth.registro' in vistas %}
                     <a href="{{ url_registro }}" class="btn btn-sm btn-primary">
                         Registrarse
                     </a>
+                    {% endif %}
                     {% endif %}
                 </div>
             </nav>
