@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, make_response, redirect, render_template, session, url_for
 import requests
 
+from cine_paradiso_web.constants import TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.seguridad import obtener_token
 from cine_paradiso_web.services import usuarios as servicio_usuarios
 
@@ -30,7 +31,7 @@ def perfil():
             respuesta_web = make_response(
                 redirect(url_for('auth.login'))
             )
-            respuesta_web.delete_cookie('token_sesion')
+            respuesta_web.delete_cookie(TOKEN_COOKIE_NOMBRE)
             return respuesta_web
 
         if respuesta.status_code == 403:

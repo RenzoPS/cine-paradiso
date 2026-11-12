@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, make_response, redirect, render_template, request, session, url_for
 import requests
 
+from cine_paradiso_web.constants import TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.services import auth as servicio_auth
 from cine_paradiso_web.services import usuarios as servicio_usuarios
 
@@ -48,7 +49,7 @@ def login():
             respuesta = servicio_auth.iniciar_sesion(datos)
 
             if respuesta.status_code == 200:
-                token = respuesta.cookies.get('token_sesion')
+                token = respuesta.cookies.get(TOKEN_COOKIE_NOMBRE)
 
                 if not token:
                     flash('No se pudo obtener el token de autenticación.', 'error')
@@ -67,7 +68,7 @@ def login():
                 )
 
                 respuesta_web.set_cookie(
-                    'token_sesion',
+                    TOKEN_COOKIE_NOMBRE,
                     token,
                     max_age=86400,
                     httponly=True,
@@ -93,6 +94,6 @@ def logout():
         redirect(url_for('cartelera.listar'))
     )
 
-    respuesta.delete_cookie('token_sesion')
+    respuesta.delete_cookie(TOKEN_COOKIE_NOMBRE)
 
     return respuesta
