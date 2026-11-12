@@ -43,7 +43,7 @@ if [ "${1:-}" = "--instalar" ]; then
     exit 0
 fi
 
-paso "Levantando MySQL en Docker (la primera vez tarda porque carga init.sql y catalogo.sql)"
+paso "Levantando MySQL en Docker (la primera vez tarda porque carga init.sql y seed.sql)"
 docker compose up -d --wait db || error "MySQL no arrancó. Mirá el detalle con: docker compose logs db"
 ok "MySQL listo"
 

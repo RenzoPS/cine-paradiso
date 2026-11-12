@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Selección de Butacas - Cine Paradiso{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/butacas.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="booking-layout-wrapper">
+    <main class="main-content">
+        <div class="screen-container">
+            <div class="screen-box">PANTALLA</div>
+        </div>
+        
+        <form id="form-butacas" method="POST" action="{{ url_for('butacas.butacas') }}">
+            <div class="seating-grid">
+                {% set contador = namespace(id=1) %}
+                {% for fila in ['A', 'B', 'C', 'D'] %}
+                <div class="seat-row">
+                    <span class="row-label">{{ fila }}</span>
+                    {% for numero in range(1, 8) %}
+                        {% set id_butaca_simulado = contador.id %}
+                        {% set esta_ocupada = id_butaca_simulado in [3, 11] %}                      
+                        <div class="seat-label-wrapper">
+                            <input type="checkbox" 
+                                   name="butacas" 
+                                   value="{{ id_butaca_simulado }}" 
+                                   id="seat-{{ id_butaca_simulado }}" 
+                                   class="seat-checkbox"
+                                   {% if esta_ocupada %}disabled{% endif %}>
+                            
+                            <label for="seat-{{ id_butaca_simulado }}" class="seat-label">
+                                {{ numero }}
+                            </label>
+                        </div>
+                        
+                        {% set contador.id = contador.id + 1 %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="legend-container">
+                <div class="legend-item"><span class="legend-box disponible"></span> DISPONIBLE</div>
+                <div class="legend-item"><span class="legend-box ocupado"></span> OCUPADO</div>
+                <div class="legend-item"><span class="legend-box seleccion"></span> SELECCION</div>
+            </div>
+        </form>
+    </main>
+
+    <aside class="sidebar-summary">
+        <h3 class="summary-title">Resumen de Compra:</h3>
+        
+        <div class="movie-summary-card">
+            <div class="movie-poster-placeholder">
+                <span class="poster-icon">🎬</span>
+            </div>
+            
+            <div class="movie-info-details">
+                <h4>Sombras de Medianoche</h4>
+                <p class="movie-meta-tag">Sala 1</p>
+                <p><strong>FECHA:</strong><br><span>Hoy (26/oct)</span></p>
+                <p><strong>HORA:</strong><br><span>18:00 horas</span></p>
+                <div class="badge-row">
+                    <span class="badge">13</span>
+                    <span class="badge">120 min</span>
+                    <span class="badge">Drama</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="price-breakdown">
+            <p class="ticket-count">X 1 Una Entrada</p>
+            <p class="subtotal-label">Subtotal: <span class="price-amount">16.000,00 $</span></p>
+        </div>
+
+        <div class="action-container">
+            <button type="submit" form="form-butacas" class="btn btn-primary btn-continuar">
+                Continuar >
+            </button>
+        </div>
+    </aside>
+
+</div>
+{% endblock %}
