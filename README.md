@@ -108,12 +108,12 @@ datos de conexión en el `.env`:
 
 ```bash
 mysql -u root -p < api/db/init.sql       # crea la base cine_paradiso y las tablas
-mysql -u root -p < api/db/catalogo.sql   # carga los datos fijos del sistema
+mysql -u root -p < api/db/seed.sql       # carga los datos fijos del sistema
 ```
 
 ### Si cambia el esquema
 
-MySQL ejecuta `init.sql` y `catalogo.sql` **solo la primera vez**, cuando crea el
+MySQL ejecuta `init.sql` y `seed.sql` **solo la primera vez**, cuando crea el
 volumen. Si alguien mergea un cambio en esos archivos, hay que recrear la base
 (borra los datos locales):
 
@@ -142,7 +142,7 @@ cine-paradiso/
 │   ├── requirements.txt
 │   ├── db/
 │   │   ├── init.sql             script de creación: base y tablas
-│   │   └── catalogo.sql         script de carga: datos fijos del sistema
+│   │   └── seed.sql             script de carga: datos fijos del sistema
 │   ├── docs/swagger.yaml        contrato de la API (OpenAPI 3)
 │   └── cine_paradiso_api/
 │       ├── constants.py         configuración, formatos y códigos de error
