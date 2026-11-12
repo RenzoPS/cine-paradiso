@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.auth_service import admin_requerido
@@ -72,16 +72,12 @@ def buscar_peliculas_tmdb():
     resultados = []
 
     if consulta:
-        token_sesion = session.get('token_sesion')
-        if not token_sesion:
-            flash('Iniciá sesión como administrador para buscar en TMDB.', 'warning')
+        try:
+            respuesta = consultar_tmdb(consulta)
+        except ApiError as error:
+            flash(error.mensaje, 'error')
         else:
-            try:
-                respuesta = consultar_tmdb(consulta, token_sesion)
-            except ApiError as error:
-                flash(error.mensaje, 'error')
-            else:
-                resultados = respuesta['resultados']
+            resultados = respuesta['resultados']
 
     return render_template(
         'admin/buscar_peliculas.html',
@@ -95,11 +91,6 @@ def buscar_peliculas_tmdb():
 def importar_pelicula():
     consulta = request.form.get('q', '').strip()
     id_tmdb = request.form.get('tmdb_id', '').strip()
-    token_sesion = session.get('token_sesion')
-
-    if not token_sesion:
-        flash('Iniciá sesión como administrador para importar películas.', 'warning')
-        return redirect(url_for('admin.buscar_peliculas_tmdb', q=consulta))
 
     try:
         tmdb_id = int(id_tmdb)
@@ -112,7 +103,7 @@ def importar_pelicula():
         return redirect(url_for('admin.buscar_peliculas_tmdb', q=consulta))
 
     try:
-        pelicula = importar_desde_tmdb(tmdb_id, token_sesion)
+        pelicula = importar_desde_tmdb(tmdb_id)
     except ApiError as error:
         flash(error.mensaje, 'error')
         return redirect(url_for('admin.buscar_peliculas_tmdb', q=consulta))
@@ -125,11 +116,6 @@ def importar_pelicula():
 @admin_requerido
 def editar_pelicula(id_pelicula):
     if request.method == 'POST':
-        token_sesion = session.get('token_sesion')
-        if not token_sesion:
-            flash('Iniciá sesión como administrador para editar películas.', 'warning')
-            return redirect(url_for('admin.editar_pelicula', id_pelicula=id_pelicula))
-
         try:
             datos = _datos_edicion_desde_formulario()
         except ValueError as error:
@@ -137,7 +123,7 @@ def editar_pelicula(id_pelicula):
             return redirect(url_for('admin.editar_pelicula', id_pelicula=id_pelicula))
 
         try:
-            guardar_pelicula(id_pelicula, datos, token_sesion)
+            guardar_pelicula(id_pelicula, datos)
         except ApiError as error:
             flash(error.mensaje, 'error')
             return redirect(url_for('admin.editar_pelicula', id_pelicula=id_pelicula))
@@ -161,13 +147,8 @@ def editar_pelicula(id_pelicula):
 @admin_bp.route('/peliculas/<int:id_pelicula>/baja', methods=['POST'])
 @admin_requerido
 def dar_de_baja(id_pelicula):
-    token_sesion = session.get('token_sesion')
-    if not token_sesion:
-        flash('Iniciá sesión como administrador para dar de baja películas.', 'warning')
-        return redirect(url_for('admin.peliculas'))
-
     try:
-        dar_de_baja_pelicula(id_pelicula, token_sesion)
+        dar_de_baja_pelicula(id_pelicula)
     except ApiError as error:
         flash(error.mensaje, 'error')
     else:
