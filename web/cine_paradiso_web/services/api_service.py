@@ -1,10 +1,13 @@
 from typing import Any
 
 import requests
+from flask import request
 
-from cine_paradiso_web.constants import API_URL
-
-API_TIMEOUT = 5
+from cine_paradiso_web.constants import (
+    API_TIMEOUT_SEGUNDOS,
+    API_URL,
+    TOKEN_COOKIE_NOMBRE,
+)
 
 
 class ApiError(Exception):
@@ -20,9 +23,10 @@ def llamar_api(
     *,
     params: dict | None = None,
     json: dict | None = None,
-    cookies: dict[str, str] | None = None,
 ) -> Any:
     url = f'{API_URL.rstrip("/")}/{ruta.lstrip("/")}'
+    token = request.cookies.get(TOKEN_COOKIE_NOMBRE)
+    cookies = {TOKEN_COOKIE_NOMBRE: token} if token else None
 
     try:
         respuesta = requests.request(
@@ -31,7 +35,7 @@ def llamar_api(
             params=params,
             json=json,
             cookies=cookies,
-            timeout=API_TIMEOUT,
+            timeout=API_TIMEOUT_SEGUNDOS,
         )
     except requests.RequestException as error:
         raise ApiError('No se pudo conectar con la API.') from error

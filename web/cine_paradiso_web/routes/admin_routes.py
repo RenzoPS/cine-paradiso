@@ -2,8 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from cine_paradiso_web.seguridad import verificar_administrador
 from cine_paradiso_web.services.api_service import ApiError
-from cine_paradiso_web.services.auth_service import admin_requerido
 from cine_paradiso_web.services.peliculas_service import (
     actualizar_pelicula as guardar_pelicula,
     buscar_peliculas_tmdb as consultar_tmdb,
@@ -45,15 +45,29 @@ def _datos_edicion_desde_formulario() -> dict:
 
 
 @admin_bp.route('/', methods=['GET'])
-@admin_bp.route('/dashboard', methods=['GET'])
-@admin_requerido
 def index():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     return render_template('admin/index.html')
 
 
+@admin_bp.route('/dashboard', methods=['GET'])
+def dashboard():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    return render_template('admin/dashboard.html')
+
+
 @admin_bp.route('/peliculas', methods=['GET'])
-@admin_requerido
 def peliculas():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     try:
         respuesta = listar_todas_peliculas()
     except ApiError as error:
@@ -66,8 +80,11 @@ def peliculas():
 
 
 @admin_bp.route('/peliculas/tmdb', methods=['GET'])
-@admin_requerido
 def buscar_peliculas_tmdb():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     consulta = request.args.get('q', '').strip()
     resultados = []
 
@@ -87,8 +104,11 @@ def buscar_peliculas_tmdb():
 
 
 @admin_bp.route('/peliculas/importar', methods=['POST'])
-@admin_requerido
 def importar_pelicula():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     consulta = request.form.get('q', '').strip()
     id_tmdb = request.form.get('tmdb_id', '').strip()
 
@@ -113,8 +133,11 @@ def importar_pelicula():
 
 
 @admin_bp.route('/peliculas/<int:id_pelicula>/editar', methods=['GET', 'POST'])
-@admin_requerido
 def editar_pelicula(id_pelicula):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     if request.method == 'POST':
         try:
             datos = _datos_edicion_desde_formulario()
@@ -145,8 +168,11 @@ def editar_pelicula(id_pelicula):
 
 
 @admin_bp.route('/peliculas/<int:id_pelicula>/baja', methods=['POST'])
-@admin_requerido
 def dar_de_baja(id_pelicula):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
     try:
         dar_de_baja_pelicula(id_pelicula)
     except ApiError as error:
