@@ -13,15 +13,17 @@ paths:
     get:
       summary: Listar películas
       description: |
-        Devuelve las películas del catálogo paginadas. Incluye una lista `generos`
-        por película, ya que el esquema permite asociar varios géneros.
+        Devuelve las películas del catálogo paginadas. Cada película tiene un solo
+        `genero` (el principal de TMDB); por compatibilidad también se devuelve
+        en `generos` como lista de un elemento. `activa` no se guarda en la base:
+        se calcula y es `true` si `disponible_hasta` es nulo o todavía no pasó.
         Se puede filtrar por título parcial, género exacto, clasificación exacta,
-        estado activo (por defecto `true`), cartelera, local y fecha. Las
+        vigencia (`activa`, por defecto `true`), cartelera, local y fecha. Las
         comparaciones de texto no distinguen mayúsculas. `en_cartel=true` exige
-        película activa, período de disponibilidad vigente y al menos una función
-        activa futura; `en_cartel=false` aplica la condición inversa dentro del
-        contexto de local y fecha solicitado. `id_local` y `fecha` también pueden
-        usarse por separado para filtrar películas con funciones activas futuras.
+        período de disponibilidad vigente y al menos una función futura;
+        `en_cartel=false` aplica la condición inversa dentro del contexto de
+        local y fecha solicitado. `id_local` y `fecha` también pueden usarse por
+        separado para filtrar películas con funciones futuras.
         `fecha` usa `YYYY-MM-DD`; una fecha anterior al día actual en GMT-3 no
         devuelve películas. La disponibilidad nula no cumple la condición de
         cartelera.
@@ -50,7 +52,9 @@ paths:
             minLength: 1
         - name: activa
           in: query
-          description: Filtra por estado activo; por defecto se aplica `true`.
+          description: |
+            Filtra por vigencia: `true` devuelve las películas con período en
+            cartel abierto y `false` las dadas de baja. Por defecto se aplica `true`.
           schema:
             type: boolean
             default: true
@@ -63,7 +67,7 @@ paths:
             type: boolean
         - name: id_local
           in: query
-          description: Filtra por películas con funciones activas futuras en este local.
+          description: Filtra por películas con funciones futuras en este local.
           schema:
             type: integer
             minimum: 1
@@ -91,8 +95,8 @@ paths:
       summary: Importar película desde TMDB
       description: |
         Importa al catálogo local una película identificada por su ID de TMDB.
-        La API obtiene los datos y géneros desde el detalle de TMDB y crea las
-        asociaciones con los géneros disponibles. La película se crea activa;
+        La API obtiene los datos desde el detalle de TMDB y guarda el primer
+        género como `genero` de la película. La película se crea activa;
         `clasificacion`, `disponible_desde` y `disponible_hasta` quedan en `null`
         para configurarlos posteriormente desde el backoffice.
 
@@ -133,10 +137,10 @@ paths:
                 clasificacion: null
                 disponible_desde: null
                 disponible_hasta: null
+                genero: Drama
                 activa: true
                 generos:
                   - Drama
-                  - Romance
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -329,10 +333,11 @@ paths:
     delete:
       summary: Dar de baja una película
       description: |
-        Realiza una baja lógica estableciendo `activa` en `false`; no elimina la
-        película ni sus géneros, funciones o compras asociadas. Repetir la solicitud
-        para una película ya inactiva también responde correctamente con su estado
-        actual.
+        Realiza una baja lógica: pone `disponible_hasta` en el momento actual (y
+        ajusta `disponible_desde` si era posterior o nulo), por lo que la película
+        deja de estar activa y sale de la cartelera. No elimina la película ni sus
+        funciones o compras asociadas. Repetir la solicitud para una película ya
+        dada de baja también responde correctamente con su estado actual.
 
         Requiere una sesión válida con rol Admin.
       operationId: eliminar_pelicula
@@ -348,7 +353,7 @@ paths:
             minimum: 1
       responses:
         '200':
-          description: Película desactivada o que ya estaba inactiva.
+          description: Película dada de baja, o que ya lo estaba.
           content:
             application/json:
               schema:
@@ -543,6 +548,7 @@ components:
         - clasificacion
         - disponible_desde
         - disponible_hasta
+        - genero
         - activa
         - generos
       properties:
@@ -576,10 +582,16 @@ components:
           type: string
           format: date-time
           nullable: true
+        genero:
+          type: string
+          nullable: true
+          example: Drama
         activa:
           type: boolean
+          description: Calculado; `true` si `disponible_hasta` es nulo o todavía no pasó.
         generos:
           type: array
+          description: El `genero` como lista de un elemento, por compatibilidad.
           items:
             type: string
     BusquedaTMDB:
