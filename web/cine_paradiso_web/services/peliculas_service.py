@@ -13,17 +13,20 @@ def listar_todas_peliculas() -> dict:
     peliculas = []
 
     for activa in (True, False):
-        offset = 0
-        while True:
+        respuesta = listar_peliculas({
+            'activa': activa,
+            '_limit': 100,
+            '_offset': 0,
+        })
+        peliculas.extend(respuesta['peliculas'])
+        limite = respuesta['_limit']
+        for offset in range(limite, respuesta['_total'], limite):
             respuesta = listar_peliculas({
                 'activa': activa,
-                '_limit': 100,
+                '_limit': limite,
                 '_offset': offset,
             })
             peliculas.extend(respuesta['peliculas'])
-            offset += respuesta['_limit']
-            if offset >= respuesta['_total']:
-                break
 
     peliculas.sort(key=lambda pelicula: pelicula['id_pelicula'])
     return {'peliculas': peliculas}

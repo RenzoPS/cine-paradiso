@@ -33,6 +33,7 @@ from ..validators.peliculas import (
 
 def _formatear_pelicula(pelicula: dict) -> dict:
     pelicula['activa'] = bool(pelicula['activa'])
+    pelicula['generos'] = [pelicula['genero']] if pelicula['genero'] else []
     pelicula['disponible_desde'] = formatear_fecha_hora(pelicula['disponible_desde'])
     pelicula['disponible_hasta'] = formatear_fecha_hora(pelicula['disponible_hasta'])
     return pelicula
