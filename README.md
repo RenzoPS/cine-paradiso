@@ -191,12 +191,11 @@ Viewer" de VS Code.
 | GET | `/usuarios` | Listado de usuarios | Admin |
 | PATCH | `/usuarios/{id_usuario}/rol` | Dar o quitar el rol de admin | Admin |
 | GET | `/peliculas/tmdb?q=` | Busca películas en TMDB para importar al catálogo | Admin |
-| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con géneros y póster y responde `201` | Admin |
-| GET | `/peliculas` | Listado paginado; filtros por título, género, clasificación, estado activo, cartelera, local y fecha | Público |
-| GET | `/peliculas/{id_pelicula}` | Detalle de película con sus géneros | Público |
+| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con su género principal y póster y responde `201` | Admin |
+| GET | `/peliculas` | Listado paginado; filtros por título, género, clasificación, vigencia (`activa`), cartelera, local y fecha | Público |
+| GET | `/peliculas/{id_pelicula}` | Detalle de película con su género | Público |
 | PUT | `/peliculas/{id_pelicula}` | Reemplazar sinopsis, póster, clasificación y período en cartel | Admin |
-| DELETE | `/peliculas/{id_pelicula}` | Baja lógica (`activa=false`); conserva película y asociaciones; repetible | Admin |
-| GET | `/generos` | Géneros disponibles | Público |
+| DELETE | `/peliculas/{id_pelicula}` | Baja lógica: cierra su período en cartel en el momento actual; conserva la película; repetible | Admin |
 | GET | `/locales` | Listado de locales | Público |
 | POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
 | PUT | `/salas/{id_sala}` | Editar una sala | Admin |
@@ -249,18 +248,23 @@ disponibilidad debe tener ambas fechas nulas o ambas informadas, y la fecha de
 inicio no puede ser posterior a la de fin. Las URL de póster deben usar HTTP o
 HTTPS.
 
-El listado de películas aplica `activa=true` por defecto. Los filtros `id_local`
-y `fecha` buscan películas con funciones activas futuras en ese contexto; `fecha`
-usa `YYYY-MM-DD` en GMT-3 y una fecha anterior a hoy no devuelve películas.
-`en_cartel=true` requiere película activa, período de disponibilidad vigente
-(ambas fechas informadas) y al menos una función activa futura. `en_cartel=false`
+Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
+que no se guarda en la base: se calcula a partir del período en cartel. Una
+película está activa si `disponible_hasta` es nulo o todavía no pasó. El
+listado aplica `activa=true` por defecto, y `activa=false` devuelve las dadas de
+baja. Los filtros `id_local` y `fecha` buscan películas con funciones futuras en
+ese contexto; `fecha` usa `YYYY-MM-DD` en GMT-3 y una fecha anterior a hoy no
+devuelve películas. `en_cartel=true` requiere un período de disponibilidad
+vigente (ambas fechas informadas) y al menos una función futura. `en_cartel=false`
 busca las películas que no cumplen esa regla en el contexto opcional de local y/o
 fecha. La cartelera consulta la hora de MySQL en GMT-3, calculada a partir de
 `UTC_TIMESTAMP()`, para no depender de la zona horaria de sesión del servidor.
 
-El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: cambia `activa` a
-`false` sin eliminar la película ni sus asociaciones. Si ya estaba inactiva,
-devuelve igualmente el detalle con `200`.
+El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: pone
+`disponible_hasta` en el momento actual (y ajusta `disponible_desde` si era
+posterior o nulo), sin eliminar la película. Desde ahí deja de estar activa y
+sale de la cartelera. Si ya estaba dada de baja, devuelve igualmente el detalle
+con `200`.
 
 Las fechas viajan en ISO 8601 con desplazamiento fijo de GMT-3:
 `2026-11-18T20:30:00-03:00`.

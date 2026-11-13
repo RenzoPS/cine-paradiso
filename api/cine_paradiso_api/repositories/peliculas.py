@@ -11,9 +11,15 @@ CAMPOS_PELICULA = '''
     p.poster_url,
     p.duracion_min,
     p.clasificacion,
+    p.genero,
     p.disponible_desde,
     p.disponible_hasta,
-    p.activa
+    CASE
+        WHEN p.disponible_hasta IS NULL
+          OR p.disponible_hasta >= UTC_TIMESTAMP() - INTERVAL 3 HOUR
+        THEN TRUE
+        ELSE FALSE
+    END AS activa
 '''
 
 
@@ -28,17 +34,7 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
         parametros['titulo'] = f'%{titulo}%'
 
     if filtros.get('genero') is not None:
-        condiciones.append(
-            '''
-            EXISTS (
-                SELECT 1
-                FROM peliculas_generos pg_filtro
-                JOIN generos g_filtro ON g_filtro.id_genero = pg_filtro.fk_id_genero
-                WHERE pg_filtro.fk_id_pelicula = p.id_pelicula
-                  AND LOWER(g_filtro.nombre) = LOWER(:genero)
-            )
-            '''
-        )
+        condiciones.append('LOWER(p.genero) = LOWER(:genero)')
         parametros['genero'] = filtros['genero']
 
     if filtros.get('clasificacion') is not None:
@@ -46,8 +42,15 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
         parametros['clasificacion'] = filtros['clasificacion']
 
     if filtros.get('activa') is not None:
-        condiciones.append('p.activa = :activa')
-        parametros['activa'] = filtros['activa']
+        if filtros['activa']:
+            condiciones.append(
+                '(p.disponible_hasta IS NULL OR '
+                'p.disponible_hasta >= UTC_TIMESTAMP() - INTERVAL 3 HOUR)'
+            )
+        else:
+            condiciones.append(
+                'p.disponible_hasta < UTC_TIMESTAMP() - INTERVAL 3 HOUR'
+            )
 
     if filtros.get('fecha') is not None:
         condiciones.append(f":fecha >= DATE({ahora_argentina})")
@@ -56,7 +59,6 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
     def existe_funcion_futura() -> str:
         condiciones_funcion = [
             'f.fk_id_pelicula = p.id_pelicula',
-            'f.activa = TRUE',
             f'f.fecha_hora > {ahora_argentina}',
         ]
         join_salas = ''
@@ -84,11 +86,10 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
     if filtros.get('en_cartel') is not None:
         condicion_cartel = f'''
             (
-                p.activa = TRUE
+                p.disponible_hasta >= {ahora_argentina}
                 AND p.disponible_desde IS NOT NULL
                 AND p.disponible_hasta IS NOT NULL
                 AND p.disponible_desde <= {ahora_argentina}
-                AND p.disponible_hasta >= {ahora_argentina}
                 AND {existe_funcion_futura()}
             )
         '''
@@ -101,29 +102,6 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
 
     where = f"WHERE {' AND '.join(condiciones)}" if condiciones else ''
     return where, parametros
-
-
-def obtener_generos_por_peliculas(ids_peliculas: list[int]) -> dict[int, list[str]]:
-    if not ids_peliculas:
-        return {}
-
-    parametros = {f'id_{indice}': id_pelicula for indice, id_pelicula in enumerate(ids_peliculas)}
-    placeholders = ', '.join(f':{nombre}' for nombre in parametros)
-    filas = ejecutar_consulta(
-        f'''
-        SELECT pg.fk_id_pelicula AS id_pelicula, g.nombre AS genero
-        FROM peliculas_generos pg
-        JOIN generos g ON g.id_genero = pg.fk_id_genero
-        WHERE pg.fk_id_pelicula IN ({placeholders})
-        ORDER BY pg.fk_id_pelicula, g.nombre
-        ''',
-        parametros,
-    )
-
-    generos = {id_pelicula: [] for id_pelicula in ids_peliculas}
-    for fila in filas:
-        generos[fila['id_pelicula']].append(fila['genero'])
-    return generos
 
 
 def listar_peliculas(limit: int, offset: int, filtros: dict) -> tuple[list[dict], int]:
@@ -144,10 +122,6 @@ def listar_peliculas(limit: int, offset: int, filtros: dict) -> tuple[list[dict]
         {**parametros_filtro, 'limit': limit, 'offset': offset},
     )
 
-    generos = obtener_generos_por_peliculas([pelicula['id_pelicula'] for pelicula in peliculas])
-    for pelicula in peliculas:
-        pelicula['generos'] = generos[pelicula['id_pelicula']]
-
     return peliculas, total
 
 
@@ -164,10 +138,7 @@ def obtener_pelicula_por_id(id_pelicula: int) -> dict | None:
     if not peliculas:
         return None
 
-    pelicula = peliculas[0]
-    generos = obtener_generos_por_peliculas([id_pelicula])
-    pelicula['generos'] = generos[id_pelicula]
-    return pelicula
+    return peliculas[0]
 
 
 def obtener_pelicula_por_tmdb_id(tmdb_id: int) -> dict | None:
@@ -238,7 +209,13 @@ def desactivar_pelicula(id_pelicula: int) -> dict | None:
             text(
                 '''
                 UPDATE peliculas
-                SET activa = FALSE
+                SET disponible_desde = CASE
+                        WHEN disponible_desde IS NULL
+                          OR disponible_desde > UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
+                        THEN UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
+                        ELSE disponible_desde
+                    END,
+                    disponible_hasta = UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 1 SECOND
                 WHERE id_pelicula = :id_pelicula
                 '''
             ),
@@ -254,11 +231,11 @@ def importar_pelicula(datos: dict) -> int:
             text(
                 '''
                 INSERT INTO peliculas
-                    (tmdb_id, titulo, sinopsis, poster_url, duracion_min, clasificacion,
-                     disponible_desde, disponible_hasta, activa)
+                    (tmdb_id, titulo, sinopsis, poster_url, duracion_min, clasificacion, genero,
+                     disponible_desde, disponible_hasta)
                 VALUES
-                    (:tmdb_id, :titulo, :sinopsis, :poster_url, :duracion_min, NULL,
-                     NULL, NULL, TRUE)
+                    (:tmdb_id, :titulo, :sinopsis, :poster_url, :duracion_min, NULL, :genero,
+                     NULL, NULL)
                 '''
             ),
             {
@@ -267,33 +244,9 @@ def importar_pelicula(datos: dict) -> int:
                 'sinopsis': datos['sinopsis'],
                 'poster_url': datos['poster_url'],
                 'duracion_min': datos['duracion_min'],
+                'genero': datos['generos'][0]['nombre'] if datos['generos'] else None,
             },
         )
         id_pelicula = resultado.lastrowid
-
-        for genero in datos['generos']:
-            conexion.execute(
-                text(
-                    '''
-                    INSERT INTO generos (tmdb_id, nombre)
-                    VALUES (:tmdb_id, :nombre)
-                    ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
-                    '''
-                ),
-                {'tmdb_id': genero['tmdb_id'], 'nombre': genero['nombre']},
-            )
-            id_genero = conexion.execute(
-                text('SELECT id_genero FROM generos WHERE tmdb_id = :tmdb_id'),
-                {'tmdb_id': genero['tmdb_id']},
-            ).scalar_one()
-            conexion.execute(
-                text(
-                    '''
-                    INSERT IGNORE INTO peliculas_generos (fk_id_pelicula, fk_id_genero)
-                    VALUES (:id_pelicula, :id_genero)
-                    '''
-                ),
-                {'id_pelicula': id_pelicula, 'id_genero': id_genero},
-            )
 
     return id_pelicula
