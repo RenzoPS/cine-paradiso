@@ -43,3 +43,11 @@ INSERT INTO servicios (id_servicio, nombre, descripcion, precio, activo) VALUES
 (2, 'Chocolate', 'Barra de chocolate semiamargo de 100 g', 1500.00, TRUE),
 (3, 'Estacionamiento', 'Estacionamiento cubierto durante la función', 2500.00, TRUE),
 (4, 'Acceso VIP', 'Sala de espera VIP con sillones y bebida de cortesía', 6000.00, TRUE);
+
+-- Funcion de ejemplo para la pelicula 1, si ya fue cargada.
+INSERT INTO funciones (fk_id_pelicula, fk_id_sala, fecha_hora, precio)
+SELECT p.id_pelicula, 1,
+       '2027-01-01 20:00:00',
+       4500.00
+FROM peliculas p
+WHERE p.id_pelicula = 1;
