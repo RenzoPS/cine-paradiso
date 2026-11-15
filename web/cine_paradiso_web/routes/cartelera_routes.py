@@ -5,6 +5,8 @@ from cine_paradiso_web.services.cartelera_service import (
     obtener_pelicula_por_id,
     obtener_peliculas_cartelera,
 )
+from cine_paradiso_web.services.api_service import ApiError
+from cine_paradiso_web.services.funciones_service import listar_funciones
 
 cartelera_bp = Blueprint('cartelera', __name__)
 
@@ -48,4 +50,28 @@ def detalle(id_pelicula: int):
         # Template de detalle con estado no disponible o 404
         return render_template('detalle.html', pelicula=None, id_pelicula=id_pelicula)
 
-    return render_template('detalle.html', pelicula=pelicula)
+    error_funciones = None
+    try:
+        respuesta = listar_funciones({
+            'id_pelicula': id_pelicula,
+            '_limit': 100,
+            '_offset': 0,
+        })
+        funciones = respuesta['funciones']
+        for offset in range(respuesta['_limit'], respuesta['_total'], respuesta['_limit']):
+            pagina = listar_funciones({
+                'id_pelicula': id_pelicula,
+                '_limit': respuesta['_limit'],
+                '_offset': offset,
+            })
+            funciones.extend(pagina['funciones'])
+    except ApiError as error:
+        funciones = []
+        error_funciones = error.mensaje
+
+    return render_template(
+        'detalle.html',
+        pelicula=pelicula,
+        funciones=funciones,
+        error_funciones=error_funciones,
+    )
