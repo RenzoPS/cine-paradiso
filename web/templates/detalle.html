@@ -75,7 +75,21 @@
 
                 <div class="movie-functions-preview">
                     <h2 class="section-subtitle">Funciones disponibles</h2>
-                    <p class="functions-help">Las funciones se cargarán automáticamente desde el sistema.</p>
+                    {% if error_funciones %}
+                        <p class="functions-help" role="alert">{{ error_funciones }}</p>
+                    {% elif funciones %}
+                        <ul class="functions-list">
+                            {% for funcion in funciones %}
+                                <li class="function-item">
+                                    <span class="function-branch">{{ funcion.local }} · {{ funcion.sala }}</span>
+                                    <span class="function-time">{{ funcion.fecha_hora }}</span>
+                                    <span>${{ funcion.precio }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="functions-help">No hay funciones disponibles para esta película.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
