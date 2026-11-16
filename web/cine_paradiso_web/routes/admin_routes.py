@@ -15,7 +15,6 @@ from cine_paradiso_web.services.peliculas_service import (
 from cine_paradiso_web.services.funciones_service import (
     actualizar_funcion as guardar_funcion,
     crear_funcion as programar_funcion,
-    eliminar_funcion as eliminar_funcion_api,
     listar_salas,
     listar_todas_funciones,
     obtener_funcion,
@@ -31,19 +30,25 @@ CAMPOS_EDITABLES_PELICULA = (
 )
 
 
+def _parsear_fecha_local(valor: str, campo: str) -> str:
+    try:
+        fecha_hora = datetime.fromisoformat(valor)
+    except ValueError as error:
+        raise ValueError(f"El campo '{campo}' no contiene una fecha válida.") from error
+
+    if fecha_hora.tzinfo is not None:
+        raise ValueError(f"El campo '{campo}' debe usar la hora local del cine.")
+
+    return fecha_hora.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+
+
 def _datos_edicion_desde_formulario() -> dict:
     datos = {}
     for campo in CAMPOS_EDITABLES_PELICULA:
         valor = request.form.get(campo, '').strip()
         if campo in ('disponible_desde', 'disponible_hasta'):
             if valor:
-                try:
-                    fecha_hora = datetime.fromisoformat(valor)
-                except ValueError as error:
-                    raise ValueError(f"El campo '{campo}' no contiene una fecha válida.") from error
-                if fecha_hora.tzinfo is not None:
-                    raise ValueError(f"El campo '{campo}' debe usar la hora local del cine.")
-                valor = fecha_hora.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+                valor = _parsear_fecha_local(valor, campo)
             else:
                 valor = None
         else:
@@ -54,18 +59,12 @@ def _datos_edicion_desde_formulario() -> dict:
 
 def _datos_funcion_desde_formulario() -> dict:
     valor_fecha = request.form.get('fecha_hora', '').strip()
-    try:
-        fecha_hora = datetime.fromisoformat(valor_fecha)
-    except ValueError as error:
-        raise ValueError("El campo 'fecha_hora' no contiene una fecha válida.") from error
-
-    if fecha_hora.tzinfo is not None:
-        raise ValueError("El campo 'fecha_hora' debe usar la hora local del cine.")
+    fecha_hora = _parsear_fecha_local(valor_fecha, 'fecha_hora')
 
     return {
         'id_pelicula': request.form.get('id_pelicula', '').strip(),
         'id_sala': request.form.get('id_sala', '').strip(),
-        'fecha_hora': fecha_hora.strftime('%Y-%m-%dT%H:%M:%S-03:00'),
+        'fecha_hora': fecha_hora,
         'precio': request.form.get('precio', '').strip(),
     }
 
@@ -365,19 +364,3 @@ def editar_funcion(id_funcion):
         salas=salas,
         id_local=id_local,
     )
-
-
-@admin_bp.route('/funciones/<int:id_funcion>/baja', methods=['POST'])
-def dar_de_baja_funcion(id_funcion):
-    redireccion = verificar_administrador()
-    if redireccion:
-        return redireccion
-
-    try:
-        eliminar_funcion_api(id_funcion)
-    except ApiError as error:
-        flash(error.mensaje, 'error')
-    else:
-        flash('La función se dio de baja correctamente.', 'success')
-
-    return redirect(url_for('admin.funciones'))

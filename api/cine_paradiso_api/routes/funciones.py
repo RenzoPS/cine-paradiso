@@ -5,7 +5,6 @@ from ..services.funciones import (
     actualizar_funcion,
     buscar_funcion,
     crear_funcion,
-    eliminar_funcion,
     listar_funciones,
     listar_salas,
 )
@@ -33,13 +32,6 @@ def post_funcion():
 def put_funcion(id_funcion):
     verificar_administrador()
     return jsonify(actualizar_funcion(id_funcion, request.get_json(silent=True)))
-
-
-@funciones_bp.route('/funciones/<id_funcion>', methods=['DELETE'])
-def delete_funcion(id_funcion):
-    verificar_administrador()
-    eliminar_funcion(id_funcion)
-    return '', 204
 
 
 @funciones_bp.route('/salas', methods=['GET'])

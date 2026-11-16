@@ -141,6 +141,15 @@ def actualizar_funcion(id_funcion, body) -> dict:
         if id_sala_actual is None:
             raise _error_funcion_no_encontrada(id_validado)
 
+        compra = db_funciones.obtener_compra_de_funcion(conexion, id_validado)
+        if compra is not None:
+            raise ErrorAPI(
+                code='funcion.has.sales',
+                message='La función tiene compras activas',
+                description='No se puede editar una función con compras pendientes o pagadas',
+                status=409,
+            )
+
         for id_sala in sorted({id_sala_actual, datos['id_sala']}):
             _validar_sala(conexion, id_sala)
         _validar_programacion(conexion, datos, id_validado)
@@ -151,25 +160,6 @@ def actualizar_funcion(id_funcion, body) -> dict:
         raise _error_funcion_no_encontrada(id_validado)
 
     return _formatear_funcion(funcion)
-
-
-def eliminar_funcion(id_funcion) -> None:
-    id_validado = validar_id_funcion(id_funcion)
-    with transaccion() as conexion:
-        id_sala = db_funciones.obtener_sala_de_funcion(conexion, id_validado)
-        if id_sala is None:
-            raise _error_funcion_no_encontrada(id_validado)
-
-        _validar_sala(conexion, id_sala)
-        compra = db_funciones.obtener_compra_de_funcion(conexion, id_validado)
-        if compra is not None:
-            raise ErrorAPI(
-                code='funcion.has.sales',
-                message='La funcion tiene compras asociadas',
-                description='No se puede dar de baja una funcion con compras asociadas',
-                status=409,
-            )
-        db_funciones.eliminar_funcion_sql(conexion, id_validado)
 
 
 def _error_funcion_no_encontrada(id_funcion: int) -> ErrorAPI:

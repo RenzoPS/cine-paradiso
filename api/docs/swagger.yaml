@@ -211,47 +211,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
-    delete:
-      summary: Dar de baja una función
-      description: |
-        Elimina una función únicamente si no tiene compras asociadas. Requiere
-        una sesión válida con rol Admin.
-      operationId: delete_funcion
-      tags:
-        - Funciones
-      security:
-        - TokenSesion: []
-      parameters:
-        - name: id_funcion
-          in: path
-          required: true
-          description: Identificador interno positivo.
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '204':
-          description: Función eliminada.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          description: No existe una función con ese ID.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: La función tiene compras asociadas y no puede eliminarse.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          $ref: '#/components/responses/InternalError'
   /salas:
     get:
       summary: Listar salas para programación

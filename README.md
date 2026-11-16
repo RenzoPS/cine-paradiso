@@ -206,8 +206,7 @@ Viewer" de VS Code.
 | GET | `/funciones/{id_funcion}` | Detalle de una función con película, sala, local, fecha/hora y precio | Público |
 | POST | `/funciones` | Programar una función con película, sala, fecha/hora y precio | Admin |
 | PUT | `/funciones/{id_funcion}` | Reemplazar película, sala, fecha/hora y precio | Admin |
-| DELETE | `/funciones/{id_funcion}` | Eliminar una función sin compras asociadas (`204`) | Admin |
-| GET | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
+| DELETE | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
 | GET | `/servicios` | Servicios activos | Público |
 | POST | `/servicios` | Alta de un servicio | Admin |
 | PUT | `/servicios/{id_servicio}` | Modificar un servicio | Admin |
@@ -265,9 +264,7 @@ inicio de la función. La fecha/hora debe ser futura y usar el formato
 dos decimales. No se permiten superposiciones en una misma sala: se calcula el
 fin de cada función con la duración de su película, sin agregar tiempo de
 limpieza entre funciones. `GET /salas` requiere rol Admin y devuelve las salas
-con su local y dirección para elegirlas al programar. `DELETE /funciones/{id_funcion}`
-elimina la función solo si no tiene compras asociadas; de lo contrario responde
-`409`.
+con su local y dirección para elegirlas al programar.
 
 Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
 que no se guarda en la base: se calcula a partir del período en cartel. Una

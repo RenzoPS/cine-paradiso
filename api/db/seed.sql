@@ -44,10 +44,12 @@ INSERT INTO servicios (id_servicio, nombre, descripcion, precio, activo) VALUES
 (3, 'Estacionamiento', 'Estacionamiento cubierto durante la función', 2500.00, TRUE),
 (4, 'Acceso VIP', 'Sala de espera VIP con sillones y bebida de cortesía', 6000.00, TRUE);
 
--- Funcion de ejemplo para la pelicula 1, si ya fue cargada.
+-- Películas de ejemplo del catálogo.
+INSERT INTO peliculas (id_pelicula, tmdb_id, titulo, sinopsis, poster_url, duracion_min, clasificacion, genero, disponible_desde, disponible_hasta) VALUES
+(1, 11216, 'Cinema Paradiso', 'Un cineasta recuerda su infancia y su amistad con el proyeccionista del cine de su pueblo.', 'https://image.tmdb.org/t/p/w500/example.jpg', 155, 'ATP', 'Drama', '2026-12-01 00:00:00', '2027-12-31 23:59:59'),
+(2, 238, 'El Padrino', 'La historia de la familia Corleone, una de las más poderosas de la mafia italoamericana.', 'https://image.tmdb.org/t/p/w500/example.jpg', 175, '+16', 'Crimen', '2026-12-01 00:00:00', '2027-12-31 23:59:59'),
+(3, 280, 'Casablanca', 'En el Casablanca ocupado durante la Segunda Guerra Mundial, un dueño de bar se reencuentra con un antiguo amor.', 'https://image.tmdb.org/t/p/w500/example.jpg', 102, 'ATP', 'Romance', '2026-12-01 00:00:00', '2027-12-31 23:59:59');
+
+-- Función de ejemplo para la película 1 en la Sala 1 del local Centro.
 INSERT INTO funciones (fk_id_pelicula, fk_id_sala, fecha_hora, precio)
-SELECT p.id_pelicula, 1,
-       '2027-01-01 20:00:00',
-       4500.00
-FROM peliculas p
-WHERE p.id_pelicula = 1;
+VALUES (1, 1, '2027-01-01 20:00:00', 4500.00);

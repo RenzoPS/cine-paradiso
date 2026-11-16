@@ -1,5 +1,6 @@
 from sqlalchemy import text
 
+from ..utils import ErrorAPI
 from . import ejecutar_consulta, ejecutar_escalar
 from . import transaccion
 
@@ -158,17 +159,29 @@ def actualizar_pelicula(id_pelicula: int, datos: dict) -> dict | None:
         existe = conexion.execute(
             text(
                 '''
-                SELECT id_pelicula
+                SELECT id_pelicula, disponible_desde, disponible_hasta
                 FROM peliculas
                 WHERE id_pelicula = :id_pelicula
                 FOR UPDATE
                 '''
             ),
             {'id_pelicula': id_pelicula},
-        ).scalar_one_or_none()
+        ).mappings().one_or_none()
 
         if existe is None:
             return None
+
+        disponible_desde_cambia = datos['disponible_desde'] != existe['disponible_desde']
+        disponible_hasta_cambia = datos['disponible_hasta'] != existe['disponible_hasta']
+
+        if disponible_desde_cambia or disponible_hasta_cambia:
+            if _existe_compra_activa_para_pelicula(conexion, id_pelicula):
+                raise ErrorAPI(
+                    code='pelicula.has.active.sales',
+                    message='La película tiene compras activas',
+                    description='No se puede modificar la disponibilidad de una película con funciones futuras con compras pendientes o pagadas',
+                    status=409,
+                )
 
         conexion.execute(
             text(
@@ -200,10 +213,18 @@ def desactivar_pelicula(id_pelicula: int) -> dict | None:
                 '''
             ),
             {'id_pelicula': id_pelicula},
-        ).scalar_one_or_none()
+        ).mappings().one_or_none()
 
         if existe is None:
             return None
+
+        if _existe_compra_activa_para_pelicula(conexion, id_pelicula):
+            raise ErrorAPI(
+                code='pelicula.has.active.sales',
+                message='La película tiene compras activas',
+                description='No se puede dar de baja una película con funciones futuras con compras pendientes o pagadas',
+                status=409,
+            )
 
         conexion.execute(
             text(
@@ -223,6 +244,23 @@ def desactivar_pelicula(id_pelicula: int) -> dict | None:
         )
 
     return obtener_pelicula_por_id(id_pelicula)
+
+
+def _existe_compra_activa_para_pelicula(conexion, id_pelicula: int) -> bool:
+    return conexion.execute(
+        text(
+            '''
+            SELECT 1
+            FROM compras c
+            JOIN funciones f ON f.id_funcion = c.fk_id_funcion
+            WHERE f.fk_id_pelicula = :id_pelicula
+              AND f.fecha_hora > UTC_TIMESTAMP() - INTERVAL 3 HOUR
+              AND c.estado IN ('pendiente', 'pagada')
+            LIMIT 1
+            '''
+        ),
+        {'id_pelicula': id_pelicula},
+    ).scalar_one_or_none() is not None
 
 
 def importar_pelicula(datos: dict) -> int:

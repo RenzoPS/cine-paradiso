@@ -37,6 +37,10 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
         condiciones.append('s.fk_id_local = :id_local')
         parametros['id_local'] = filtros['id_local']
 
+    condiciones.append(
+        'f.fecha_hora BETWEEN p.disponible_desde AND p.disponible_hasta'
+    )
+
     if filtros.get('fecha') is not None:
         condiciones.extend((
             'f.fecha_hora >= :fecha',
@@ -176,6 +180,7 @@ def obtener_compra_de_funcion(conexion, id_funcion: int) -> int | None:
             SELECT id_compra
             FROM compras
             WHERE fk_id_funcion = :id_funcion
+              AND estado IN ('pendiente', 'pagada')
             LIMIT 1
             FOR UPDATE
             '''
@@ -210,11 +215,4 @@ def actualizar_funcion_sql(conexion, id_funcion: int, datos: dict) -> None:
             '''
         ),
         {**datos, 'id_funcion': id_funcion},
-    )
-
-
-def eliminar_funcion_sql(conexion, id_funcion: int) -> None:
-    conexion.execute(
-        text('DELETE FROM funciones WHERE id_funcion = :id_funcion'),
-        {'id_funcion': id_funcion},
     )

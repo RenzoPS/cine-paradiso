@@ -82,7 +82,7 @@
                             {% for funcion in funciones %}
                                 <li class="function-item">
                                     <span class="function-branch">{{ funcion.local }} · {{ funcion.sala }}</span>
-                                    <span class="function-time">{{ funcion.fecha_hora }}</span>
+                                    <span class="function-time">{{ funcion.fecha_hora | fecha_legible }}</span>
                                     <span>${{ funcion.precio }}</span>
                                 </li>
                             {% endfor %}

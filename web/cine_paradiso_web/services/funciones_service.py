@@ -54,10 +54,3 @@ def actualizar_funcion(id_funcion: int, datos: dict) -> dict:
         f'funciones/{id_funcion}',
         json=datos,
     )
-
-
-def eliminar_funcion(id_funcion: int) -> None:
-    llamar_api(
-        'DELETE',
-        f'funciones/{id_funcion}',
-    )

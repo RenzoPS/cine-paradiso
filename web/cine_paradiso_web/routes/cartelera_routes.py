@@ -6,7 +6,7 @@ from cine_paradiso_web.services.cartelera_service import (
     obtener_peliculas_cartelera,
 )
 from cine_paradiso_web.services.api_service import ApiError
-from cine_paradiso_web.services.funciones_service import listar_funciones
+from cine_paradiso_web.services.funciones_service import listar_todas_funciones
 
 cartelera_bp = Blueprint('cartelera', __name__)
 
@@ -52,19 +52,7 @@ def detalle(id_pelicula: int):
 
     error_funciones = None
     try:
-        respuesta = listar_funciones({
-            'id_pelicula': id_pelicula,
-            '_limit': 100,
-            '_offset': 0,
-        })
-        funciones = respuesta['funciones']
-        for offset in range(respuesta['_limit'], respuesta['_total'], respuesta['_limit']):
-            pagina = listar_funciones({
-                'id_pelicula': id_pelicula,
-                '_limit': respuesta['_limit'],
-                '_offset': offset,
-            })
-            funciones.extend(pagina['funciones'])
+        funciones = listar_todas_funciones({'id_pelicula': id_pelicula})['funciones']
     except ApiError as error:
         funciones = []
         error_funciones = error.mensaje

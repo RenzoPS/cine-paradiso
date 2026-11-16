@@ -50,7 +50,7 @@
                     <tr>
                         <td>{{ funcion.pelicula }}</td>
                         <td>{{ funcion.sala }} · {{ funcion.local }}</td>
-                        <td>{{ funcion.fecha_hora }}</td>
+                        <td>{{ funcion.fecha_hora | fecha_legible }}</td>
                         <td>${{ funcion.precio }}</td>
                         <td>
                             <div class="admin-row-actions">
@@ -58,12 +58,6 @@
                                    href="{{ url_for('admin.editar_funcion', id_funcion=funcion.id_funcion) }}">
                                     Editar
                                 </a>
-                                <form method="post"
-                                      action="{{ url_for('admin.dar_de_baja_funcion', id_funcion=funcion.id_funcion) }}">
-                                    <button class="btn btn-sm btn-outline" type="submit">
-                                        Dar de baja
-                                    </button>
-                                </form>
                             </div>
                         </td>
                     </tr>
