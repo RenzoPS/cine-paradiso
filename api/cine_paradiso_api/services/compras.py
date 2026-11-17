@@ -1,9 +1,15 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 
+from sqlalchemy.exc import IntegrityError
+
 from ..constants import (
+    ERROR_CODE_COMPRA_BUTACA_AJENA,
+    ERROR_CODE_COMPRA_BUTACA_OCUPADA,
+    ERROR_CODE_COMPRA_FUNCION_PASADA,
+    ERROR_CODE_COMPRA_NO_ABANDONABLE,
     ERROR_CODE_COMPRA_NO_CONFIRMABLE,
     ERROR_CODE_COMPRA_NOT_FOUND,
     ERROR_CODE_COMPRA_SIN_FACTURA,
@@ -20,12 +26,15 @@ from ..constants import (
     ESTADO_USADA,
     ESTADO_VENCIDA,
     HORAS_LIMITE_CANCELACION,
+    MINUTOS_RESERVA,
     TZ_ARG,
     WEB_URL,
 )
 from ..repositories import compras as db_compras
+from ..repositories import transaccion
 from ..utils import ErrorAPI, formatear_fecha_hora
-from ..validators.compras import validar_cuerpo_validacion_qr, validar_id_compra
+from ..validators.compras import validar_cuerpo_compra, validar_cuerpo_validacion_qr, validar_id_compra
+from .funciones import buscar_funcion
 from . import mail as mail_service
 from .mail_plantillas import CONFIRMACION_COMPRA
 from .qr import error_qr_invalido, generar_imagen_qr, generar_token_qr, leer_token_qr
@@ -38,20 +47,48 @@ def _ahora() -> datetime:
     return datetime.now(TZ_ARG).replace(tzinfo=None)
 
 
+def _limite_reserva() -> datetime:
+    """
+    Las compras pendientes creadas antes de este momento ya vencieron.
+    """
+    return _ahora() - timedelta(minutes=MINUTOS_RESERVA)
+
+
+def vencer_reservas_de_funcion(id_funcion: int) -> None:
+    """
+    Vencimiento lazy del hold: antes de mirar una funcion se vencen sus compras
+    pendientes que superaron el tiempo de reserva y se liberan sus butacas.
+    Bloquea la funcion igual que la reserva, asi no se cruzan en un deadlock.
+    """
+    with transaccion() as conexion:
+        db_compras.bloquear_funcion(conexion, id_funcion)
+        db_compras.liberar_reservas_vencidas(conexion, id_funcion, _limite_reserva())
+
+
 def _obtener_compra_propia(id_compra: int, id_usuario: int) -> dict:
     """
-    Busca la compra y si no existe o es de otro usuario da error, responde 404.
+    Busca la compra y si no existe o es de otro usuario responde 404.
+    Si esta pendiente, primero vence los holds de su funcion para devolver el estado real.
     """
     compra = db_compras.obtener_compra_por_id(id_compra)
 
     if not compra or compra['fk_id_usuario'] != id_usuario:
-        raise ErrorAPI(
-            code=ERROR_CODE_COMPRA_NOT_FOUND,
-            message='Compra no encontrada',
-            description=f"No existe una compra con id '{id_compra}'",
-            status=404,
-        )
+        raise _error_compra_no_encontrada(id_compra)
+
+    if compra['estado'] == ESTADO_PENDIENTE:
+        vencer_reservas_de_funcion(compra['fk_id_funcion'])
+        compra = db_compras.obtener_compra_por_id(id_compra)
+
     return compra
+
+
+def _error_compra_no_encontrada(id_compra: int) -> ErrorAPI:
+    return ErrorAPI(
+        code=ERROR_CODE_COMPRA_NOT_FOUND,
+        message='Compra no encontrada',
+        description=f"No existe una compra con id '{id_compra}'",
+        status=404,
+    )
 
 def _validar_compra_confirmable(compra: dict) -> None:
     """
@@ -304,3 +341,86 @@ def validar_ingreso(body) -> dict:
         'fecha_validacion': formatear_fecha_hora(ahora),
         'butacas': [f"{entrada['fila']}{entrada['numero']}" for entrada in entradas],
     }
+
+
+def crear_compra(body, id_usuario: int) -> dict:
+    """
+    Reserva las butacas: crea la compra pendiente y sus entradas en una sola transaccion.
+    Si otra compra tomo alguna butaca, el UNIQUE de entradas lo frena y responde 409.
+    """
+    id_funcion, butacas = validar_cuerpo_compra(body)
+    funcion = buscar_funcion(id_funcion)
+    ahora = _ahora()
+
+    try:
+        with transaccion() as conexion:
+            if db_compras.bloquear_funcion(conexion, id_funcion) <= ahora:
+                raise ErrorAPI(
+                    code=ERROR_CODE_COMPRA_FUNCION_PASADA,
+                    message='La funcion ya comenzo',
+                    description='Solo se pueden reservar butacas de funciones futuras',
+                    status=409,
+                )
+            if db_compras.contar_butacas_de_sala(conexion, funcion['id_sala'], butacas) != len(butacas):
+                raise ErrorAPI(
+                    code=ERROR_CODE_COMPRA_BUTACA_AJENA,
+                    message='Butaca invalida',
+                    description='Alguna de las butacas no pertenece a la sala de la funcion',
+                )
+
+            db_compras.liberar_reservas_vencidas(conexion, id_funcion, _limite_reserva())
+            id_compra = db_compras.insertar_compra(conexion, id_usuario, id_funcion, ahora)
+            db_compras.insertar_entradas(conexion, id_compra, id_funcion, butacas)
+    except IntegrityError as error:
+        raise ErrorAPI(
+            code=ERROR_CODE_COMPRA_BUTACA_OCUPADA,
+            message='Butaca ocupada',
+            description='Alguna de las butacas elegidas ya fue reservada. Volve a elegir',
+            status=409,
+        ) from error
+
+    return buscar_compra(id_compra, id_usuario)
+
+
+def buscar_compra(id_compra, id_usuario: int) -> dict:
+    id_validado = validar_id_compra(id_compra)
+    compra = _obtener_compra_propia(id_validado, id_usuario)
+
+    funcion = buscar_funcion(compra['fk_id_funcion'])
+    butacas = db_compras.obtener_entradas_de_compra(id_validado)
+
+    vence_en = None
+    if compra['estado'] == ESTADO_PENDIENTE:
+        vence_en = compra['fecha_hora'] + timedelta(minutes=MINUTOS_RESERVA)
+
+    return {
+        'id_compra': compra['id_compra'],
+        'estado': compra['estado'],
+        'fecha_hora': formatear_fecha_hora(compra['fecha_hora']),
+        'vence_en': formatear_fecha_hora(vence_en),
+        'funcion': funcion,
+        'butacas': butacas,
+        'subtotal_entradas': str(Decimal(funcion['precio']) * len(butacas)),
+    }
+
+
+def abandonar_compra(id_compra, id_usuario: int) -> None:
+    """
+    Cancelar antes de pagar: borra la compra con sus entradas y servicios, asi las
+    butacas quedan libres y no cuenta como cancelacion en los dashboards.
+    """
+    id_validado = validar_id_compra(id_compra)
+    with transaccion() as conexion:
+        compra = db_compras.bloquear_compra(conexion, id_validado)
+        if compra is None or compra['fk_id_usuario'] != id_usuario:
+            raise _error_compra_no_encontrada(id_validado)
+
+        if compra['estado'] != ESTADO_PENDIENTE:
+            raise ErrorAPI(
+                code=ERROR_CODE_COMPRA_NO_ABANDONABLE,
+                message='La compra no se puede abandonar',
+                description=f"La compra esta en estado '{compra['estado']}' y solo se abandonan las pendientes",
+                status=409,
+            )
+
+        db_compras.eliminar_compra(conexion, id_validado)

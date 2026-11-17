@@ -214,7 +214,7 @@ Viewer" de VS Code.
 | POST | `/compras` | Reserva butacas y crea la compra `pendiente`. 409 si alguna ya se ocupó | Cliente |
 | GET | `/compras` | Compras del usuario logueado | Cliente |
 | GET | `/compras/{id_compra}` | Detalle de una compra | Cliente |
-| DELETE | `/compras/{id_compra}` | Abandonar una compra pendiente y liberar las butacas | Cliente |
+| DELETE | `/compras/{id_compra}` | Cancelar una compra pendiente antes de pagar: la borra y libera las butacas | Cliente |
 | PUT | `/compras/{id_compra}/servicios` | Servicios y cantidades de una compra pendiente | Cliente |
 | POST | `/compras/{id_compra}/confirmar` | Pasa la compra a `pagada`, genera la factura y envía el mail con el QR | Cliente |
 | GET | `/compras/{id_compra}/factura` | Datos de la factura | Cliente |
@@ -265,6 +265,39 @@ dos decimales. No se permiten superposiciones en una misma sala: se calcula el
 fin de cada función con la duración de su película, sin agregar tiempo de
 limpieza entre funciones. `GET /salas` requiere rol Admin y devuelve las salas
 con su local y dirección para elegirlas al programar.
+
+`GET /funciones/{id_funcion}/butacas` devuelve el mapa de la sala para esa
+función: los datos de la función (mismo formato que `GET /funciones/{id_funcion}`),
+la `capacidad` de la sala, las butacas `disponibles` y las `filas`, cada una con
+sus butacas (`id_butaca`, `numero` y `ocupada`). Una butaca está ocupada si
+existe su entrada en esa función. Si la función no existe, responde `404`.
+
+El hold de una compra pendiente dura 10 minutos (`MINUTOS_RESERVA`) y vence de
+forma lazy, sin procesos en segundo plano: antes de mirar o reservar una
+función se vencen sus compras pendientes que superaron ese tiempo (pasan a
+`vencida` y se borran sus entradas, así las butacas quedan libres). Lo hace
+`vencer_reservas_de_funcion(id_funcion)` del service de compras; lo llaman el
+mapa, la reserva y la búsqueda de una compra del usuario. Lo que necesite el
+estado real de las compras de una función (por ejemplo, los dashboards) la
+llama antes de consultar.
+
+`POST /compras` recibe `id_funcion` y `butacas` (lista de 1 a 4 `id_butaca`
+sin repetir, de la sala de la función) y crea la compra `pendiente` con sus
+entradas en una sola transacción. La reserva dura 10 minutos. Antes de reservar
+se vencen los holds de esa función. Si otra compra ya tomó alguna butaca responde `409`, y si la
+función ya empezó, también `409`. Devuelve `201` con el detalle de la compra.
+
+`GET /compras/{id_compra}` devuelve la compra del usuario logueado: `estado`,
+`fecha_hora`, `vence_en` (solo mientras está pendiente, para la cuenta regresiva),
+la función, las butacas y `subtotal_entradas` (precio de la función por la
+cantidad de butacas). Si la compra está pendiente, antes se vencen los holds de
+su función, así devuelve el estado real. Si la compra no existe o es de otro
+usuario, responde `404`.
+
+`DELETE /compras/{id_compra}` cancela una compra pendiente antes de pagarla:
+borra la compra, sus entradas y sus servicios, así las butacas quedan libres y
+no cuenta como cancelación en los dashboards. Responde `204`, o `409` si la
+compra no está pendiente.
 
 Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
 que no se guarda en la base: se calcula a partir del período en cartel. Una
