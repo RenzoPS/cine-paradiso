@@ -199,13 +199,13 @@ Viewer" de VS Code.
 | GET | `/locales` | Listado de locales | Público |
 | POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
 | PUT | `/salas/{id_sala}` | Editar una sala | Admin |
+| GET | `/salas` | Salas y locales disponibles para programar funciones | Admin |
 | POST | `/salas/{id_sala}/butacas` | Genera la grilla de butacas (filas × columnas) | Admin |
 | GET | `/salas/{id_sala}/butacas` | Butacas y capacidad de la sala | Admin |
-| GET | `/funciones` | Funciones disponibles, con filtros por película, local y fecha | Público |
-| GET | `/funciones/{id_funcion}` | Detalle de una función: película, sala, local, fecha y precio | Público |
-| POST | `/funciones` | Programar una función | Admin |
-| PUT | `/funciones/{id_funcion}` | Editar una función | Admin |
-| DELETE | `/funciones/{id_funcion}` | Baja de una función sin ventas | Admin |
+| GET | `/funciones` | Listado paginado de funciones futuras; filtros por `id_pelicula`, `id_local` y `fecha` | Público |
+| GET | `/funciones/{id_funcion}` | Detalle de una función con película, sala, local, fecha/hora y precio | Público |
+| POST | `/funciones` | Programar una función con película, sala, fecha/hora y precio | Admin |
+| PUT | `/funciones/{id_funcion}` | Reemplazar película, sala, fecha/hora y precio | Admin |
 | GET | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
 | GET | `/servicios` | Servicios activos | Público |
 | POST | `/servicios` | Alta de un servicio | Admin |
@@ -247,6 +247,24 @@ El `PUT /peliculas/{id_pelicula}` requiere enviar todos los campos editables
 disponibilidad debe tener ambas fechas nulas o ambas informadas, y la fecha de
 inicio no puede ser posterior a la de fin. Las URL de póster deben usar HTTP o
 HTTPS.
+
+`GET /funciones` devuelve solo funciones futuras, ordenadas por fecha y hora.
+Admite filtros por `id_pelicula`, `id_local` y `fecha` (`YYYY-MM-DD` en GMT-3).
+Para hoy solo incluye funciones posteriores al momento actual; una fecha anterior
+a hoy devuelve un listado vacío. La respuesta incluye los identificadores y
+nombres de película, sala y local, la dirección del local, el póster y duración
+de la película, la fecha/hora y el precio. `GET /funciones/{id_funcion}` devuelve
+el mismo formato para una función; si no existe, responde `404`.
+
+El `POST /funciones` y el `PUT /funciones/{id_funcion}` requieren los cuatro
+campos `id_pelicula`, `id_sala`, `fecha_hora` y `precio`. La película debe tener
+duración positiva y un período de disponibilidad configurado que incluya el
+inicio de la función. La fecha/hora debe ser futura y usar el formato
+`YYYY-MM-DDTHH:MM:SS-03:00`; el precio debe ser no negativo y tener como máximo
+dos decimales. No se permiten superposiciones en una misma sala: se calcula el
+fin de cada función con la duración de su película, sin agregar tiempo de
+limpieza entre funciones. `GET /salas` requiere rol Admin y devuelve las salas
+con su local y dirección para elegirlas al programar.
 
 Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
 que no se guarda en la base: se calcula a partir del período en cartel. Una

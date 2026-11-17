@@ -9,6 +9,230 @@ servers:
   - url: http://localhost:5000/cine_paradiso_api
 
 paths:
+  /funciones:
+    get:
+      summary: Listar funciones disponibles
+      description: |
+        Devuelve funciones futuras paginadas, ordenadas por fecha y hora. Se puede
+        filtrar por película, local y día. Si la fecha es hoy, solo se incluyen
+        funciones posteriores al momento actual en GMT-3; una fecha anterior a hoy
+        no devuelve resultados. Si no hay coincidencias, responde `200` con
+        `funciones: []` y `_total: 0`.
+      operationId: get_funciones
+      tags:
+        - Funciones
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: id_pelicula
+          in: query
+          description: Filtra por identificador interno positivo de película.
+          schema:
+            type: integer
+            minimum: 1
+        - name: id_local
+          in: query
+          description: Filtra por identificador interno positivo de local.
+          schema:
+            type: integer
+            minimum: 1
+        - name: fecha
+          in: query
+          description: |
+            Día calendario de la función en formato YYYY-MM-DD y GMT-3.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Listado paginado de funciones disponibles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FuncionesPaginadas'
+              example:
+                funciones:
+                  - id_funcion: 12
+                    id_pelicula: 4
+                    pelicula: Cinema Paradiso
+                    poster_url: https://image.tmdb.org/t/p/w500/example.jpg
+                    duracion_min: 155
+                    id_sala: 1
+                    sala: Sala 1
+                    id_local: 1
+                    local: Cine Paradiso - Centro
+                    direccion: Av. Corrientes 1234, CABA
+                    fecha_hora: '2026-11-18T20:30:00-03:00'
+                    precio: '4500.00'
+                _limit: 10
+                _offset: 0
+                _total: 1
+                _links:
+                  _first: /cine_paradiso_api/funciones?_limit=10&_offset=0
+                  _prev: null
+                  _next: null
+                  _last: /cine_paradiso_api/funciones?_limit=10&_offset=0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Programar una función
+      description: |
+        Crea una función para una película en una sala. La película debe tener
+        duración positiva y un período de disponibilidad configurado que incluya
+        el comienzo de la función. La fecha/hora debe ser futura. Se rechazan
+        funciones superpuestas en la misma sala; el intervalo se calcula usando
+        la duración de cada película. Requiere una sesión válida con rol Admin.
+      operationId: post_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FuncionInput'
+            example:
+              id_pelicula: 4
+              id_sala: 1
+              fecha_hora: '2026-11-18T20:30:00-03:00'
+              precio: '4500.00'
+      responses:
+        '201':
+          description: Función programada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe la película o sala indicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película no se puede programar o hay un conflicto de horario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}:
+    get:
+      summary: Obtener el detalle de una función
+      description: Devuelve los datos de una función, su película, sala y local.
+      operationId: get_funcion
+      tags:
+        - Funciones
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Detalle de la función.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Editar una función
+      description: |
+        Reemplaza película, sala, fecha/hora y precio. Aplica las mismas
+        validaciones de disponibilidad y superposición que al programar una
+        función. Requiere una sesión válida con rol Admin.
+      operationId: put_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FuncionInput'
+      responses:
+        '200':
+          description: Función actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe la función, película o sala indicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película no se puede programar o hay un conflicto de horario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /salas:
+    get:
+      summary: Listar salas para programación
+      description: Devuelve las salas y sus locales para los formularios de administración.
+      operationId: get_salas
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      responses:
+        '200':
+          description: Salas disponibles para programar funciones.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Salas'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /peliculas:
     get:
       summary: Listar películas
@@ -515,6 +739,141 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    FuncionesPaginadas:
+      type: object
+      required:
+        - funciones
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        funciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Funcion'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    Funcion:
+      type: object
+      required:
+        - id_funcion
+        - id_pelicula
+        - pelicula
+        - poster_url
+        - duracion_min
+        - id_sala
+        - sala
+        - id_local
+        - local
+        - direccion
+        - fecha_hora
+        - precio
+      properties:
+        id_funcion:
+          type: integer
+          example: 12
+        id_pelicula:
+          type: integer
+          example: 4
+        pelicula:
+          type: string
+          example: Cinema Paradiso
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        duracion_min:
+          type: integer
+          nullable: true
+          example: 155
+        id_sala:
+          type: integer
+          example: 1
+        sala:
+          type: string
+          example: Sala 1
+        id_local:
+          type: integer
+          example: 1
+        local:
+          type: string
+          example: Cine Paradiso - Centro
+        direccion:
+          type: string
+          example: Av. Corrientes 1234, CABA
+        fecha_hora:
+          type: string
+          format: date-time
+          description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+          example: '2026-11-18T20:30:00-03:00'
+        precio:
+          type: string
+          description: Precio decimal con dos posiciones.
+          example: '4500.00'
+    FuncionInput:
+      type: object
+      required:
+        - id_pelicula
+        - id_sala
+        - fecha_hora
+        - precio
+      additionalProperties: false
+      properties:
+        id_pelicula:
+          type: integer
+          minimum: 1
+        id_sala:
+          type: integer
+          minimum: 1
+        fecha_hora:
+          type: string
+          format: date-time
+          description: Fecha/hora local con desplazamiento fijo GMT-3.
+          example: '2026-11-18T20:30:00-03:00'
+        precio:
+          oneOf:
+            - type: number
+            - type: string
+          description: Precio no negativo de hasta dos posiciones decimales.
+          example: '4500.00'
+    Salas:
+      type: object
+      required:
+        - salas
+      properties:
+        salas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_sala
+              - sala
+              - id_local
+              - local
+              - direccion
+            properties:
+              id_sala:
+                type: integer
+                example: 1
+              sala:
+                type: string
+                example: Sala 1
+              id_local:
+                type: integer
+                example: 1
+              local:
+                type: string
+                example: Cine Paradiso - Centro
+              direccion:
+                type: string
+                example: Av. Corrientes 1234, CABA
     PeliculasPaginadas:
       type: object
       required:

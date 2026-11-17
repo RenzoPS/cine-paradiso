@@ -140,6 +140,17 @@ a.admin-card:focus-visible {
     font-size: 0.85rem;
 }
 
+.admin-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-row-actions form {
+    margin: 0;
+}
+
 .admin-empty-cell,
 .admin-empty-state {
     padding: 2rem 1rem;
@@ -184,7 +195,8 @@ a.admin-card:focus-visible {
 }
 
 .admin-edit-form input,
-.admin-edit-form textarea {
+.admin-edit-form textarea,
+.admin-edit-form select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--color-border-light);

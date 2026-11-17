@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from flask import Flask
 
@@ -14,6 +15,15 @@ logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(me
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = SECRET_KEY
+
+
+@app.template_filter('fecha_legible')
+def _filtro_fecha_legible(valor):
+    if not valor:
+        return ''
+    fecha = datetime.fromisoformat(str(valor))
+    return fecha.strftime('%d/%m/%Y %H:%M')
+
 
 app.register_blueprint(cartelera_bp)
 app.register_blueprint(admin_bp)

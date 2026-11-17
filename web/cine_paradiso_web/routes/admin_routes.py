@@ -12,6 +12,13 @@ from cine_paradiso_web.services.peliculas_service import (
     listar_todas_peliculas,
     obtener_pelicula,
 )
+from cine_paradiso_web.services.funciones_service import (
+    actualizar_funcion as guardar_funcion,
+    crear_funcion as programar_funcion,
+    listar_salas,
+    listar_todas_funciones,
+    obtener_funcion,
+)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 CAMPOS_EDITABLES_PELICULA = (
@@ -23,25 +30,82 @@ CAMPOS_EDITABLES_PELICULA = (
 )
 
 
+def _parsear_fecha_local(valor: str, campo: str) -> str:
+    try:
+        fecha_hora = datetime.fromisoformat(valor)
+    except ValueError as error:
+        raise ValueError(f"El campo '{campo}' no contiene una fecha válida.") from error
+
+    if fecha_hora.tzinfo is not None:
+        raise ValueError(f"El campo '{campo}' debe usar la hora local del cine.")
+
+    return fecha_hora.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+
+
 def _datos_edicion_desde_formulario() -> dict:
     datos = {}
     for campo in CAMPOS_EDITABLES_PELICULA:
         valor = request.form.get(campo, '').strip()
         if campo in ('disponible_desde', 'disponible_hasta'):
             if valor:
-                try:
-                    fecha_hora = datetime.fromisoformat(valor)
-                except ValueError as error:
-                    raise ValueError(f"El campo '{campo}' no contiene una fecha válida.") from error
-                if fecha_hora.tzinfo is not None:
-                    raise ValueError(f"El campo '{campo}' debe usar la hora local del cine.")
-                valor = fecha_hora.strftime('%Y-%m-%dT%H:%M:%S-03:00')
+                valor = _parsear_fecha_local(valor, campo)
             else:
                 valor = None
         else:
             valor = valor or None
         datos[campo] = valor
     return datos
+
+
+def _datos_funcion_desde_formulario() -> dict:
+    valor_fecha = request.form.get('fecha_hora', '').strip()
+    fecha_hora = _parsear_fecha_local(valor_fecha, 'fecha_hora')
+
+    return {
+        'id_pelicula': request.form.get('id_pelicula', '').strip(),
+        'id_sala': request.form.get('id_sala', '').strip(),
+        'fecha_hora': fecha_hora,
+        'precio': request.form.get('precio', '').strip(),
+    }
+
+
+def _leer_id_local(valor: str | None) -> int | None:
+    if not valor:
+        return None
+
+    try:
+        id_local = int(valor)
+    except ValueError as error:
+        raise ValueError('El local seleccionado no es válido.') from error
+
+    if id_local < 1:
+        raise ValueError('El local seleccionado no es válido.')
+
+    return id_local
+
+
+def _opciones_funcion() -> tuple[list[dict], list[dict], list[dict]]:
+    peliculas = [
+        pelicula
+        for pelicula in listar_todas_peliculas()['peliculas']
+        if pelicula['activa']
+        and pelicula['duracion_min']
+        and pelicula['disponible_desde']
+        and pelicula['disponible_hasta']
+    ]
+    salas_disponibles = listar_salas()['salas']
+    locales = []
+    locales_vistos = set()
+    for sala in salas_disponibles:
+        if sala['id_local'] not in locales_vistos:
+            locales.append({
+                'id_local': sala['id_local'],
+                'local': sala['local'],
+                'direccion': sala['direccion'],
+            })
+            locales_vistos.add(sala['id_local'])
+
+    return peliculas, locales, salas_disponibles
 
 
 @admin_bp.route('/', methods=['GET'])
@@ -181,3 +245,122 @@ def dar_de_baja(id_pelicula):
         flash('La película se dio de baja correctamente.', 'success')
 
     return redirect(url_for('admin.peliculas'))
+
+
+@admin_bp.route('/funciones', methods=['GET'])
+def funciones():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    try:
+        respuesta = listar_todas_funciones()
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        funciones_disponibles = []
+    else:
+        funciones_disponibles = respuesta['funciones']
+
+    return render_template(
+        'admin/funciones.html',
+        funciones=funciones_disponibles,
+    )
+
+
+@admin_bp.route('/funciones/nueva', methods=['GET', 'POST'])
+def nueva_funcion():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    if request.method == 'POST':
+        try:
+            datos = _datos_funcion_desde_formulario()
+        except ValueError as error:
+            flash(str(error), 'error')
+            return redirect(url_for(
+                'admin.nueva_funcion',
+                id_local=request.form.get('id_local', ''),
+            ))
+
+        try:
+            programar_funcion(datos)
+        except ApiError as error:
+            flash(error.mensaje, 'error')
+            return redirect(url_for(
+                'admin.nueva_funcion',
+                id_local=request.form.get('id_local', ''),
+            ))
+
+        flash('La función se programó correctamente.', 'success')
+        return redirect(url_for('admin.funciones'))
+
+    try:
+        id_local = _leer_id_local(request.args.get('id_local'))
+        peliculas, locales, salas = _opciones_funcion()
+    except ValueError as error:
+        flash(str(error), 'error')
+        return redirect(url_for('admin.nueva_funcion'))
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        return redirect(url_for('admin.funciones'))
+
+    return render_template(
+        'admin/editar_funcion.html',
+        funcion=None,
+        peliculas=peliculas,
+        locales=locales,
+        salas=salas,
+        id_local=id_local,
+    )
+
+
+@admin_bp.route('/funciones/<int:id_funcion>/editar', methods=['GET', 'POST'])
+def editar_funcion(id_funcion):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    if request.method == 'POST':
+        try:
+            datos = _datos_funcion_desde_formulario()
+        except ValueError as error:
+            flash(str(error), 'error')
+            return redirect(url_for(
+                'admin.editar_funcion',
+                id_funcion=id_funcion,
+                id_local=request.form.get('id_local', ''),
+            ))
+
+        try:
+            guardar_funcion(id_funcion, datos)
+        except ApiError as error:
+            flash(error.mensaje, 'error')
+            return redirect(url_for(
+                'admin.editar_funcion',
+                id_funcion=id_funcion,
+                id_local=request.form.get('id_local', ''),
+            ))
+
+        flash('La función se actualizó correctamente.', 'success')
+        return redirect(url_for('admin.funciones'))
+
+    try:
+        funcion = obtener_funcion(id_funcion)
+        id_local = _leer_id_local(request.args.get('id_local')) or funcion['id_local']
+        peliculas, locales, salas = _opciones_funcion()
+    except ValueError as error:
+        flash(str(error), 'error')
+        return redirect(url_for('admin.editar_funcion', id_funcion=id_funcion))
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        return redirect(url_for('admin.funciones'))
+
+    return render_template(
+        'admin/editar_funcion.html',
+        funcion=funcion,
+        peliculas=peliculas,
+        locales=locales,
+        salas=salas,
+        id_local=id_local,
+    )
