@@ -211,6 +211,41 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}/butacas:
+    get:
+      summary: Obtener el mapa de butacas de una función
+      description: |
+        Devuelve la función, la capacidad de la sala, las butacas disponibles
+        y las filas con sus butacas. Antes vence los holds de la función que
+        superaron los 10 minutos; una butaca está ocupada si existe su entrada.
+      operationId: get_butacas_funcion
+      tags:
+        - Funciones
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Mapa de butacas de la función.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapaButacas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /salas:
     get:
       summary: Listar salas para programación
@@ -596,6 +631,134 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /compras:
+    post:
+      summary: "Reservar butacas"
+      description: |
+        Crea la compra `pendiente` con sus entradas en una sola transacción y reserva las butacas por 10 minutos. Antes de reservar libera las pendientes vencidas de la función (pasan a `vencida` y se borran sus entradas).
+      operationId: post_compra
+      tags:
+        - Compras
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompraInput'
+      responses:
+        '201':
+          description: Butacas reservadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compra'
+        '400':
+          description: Cuerpo inválido, más de 4 butacas, butacas repetidas o que no son de la sala de la función (`compra.butaca.ajena`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la función (`funcion.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Alguna butaca ya está reservada (`compra.butaca.ocupada`) o la función ya empezó (`compra.funcion.pasada`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}:
+    get:
+      summary: "Obtener el detalle de una compra"
+      description: |
+        Devuelve la compra del usuario logueado. Si está pendiente, antes vence los holds de su función, así devuelve el estado real; `vence_en` solo viene mientras está pendiente.
+      operationId: get_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Detalle de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: "Cancelar una compra antes de pagar"
+      description: |
+        Borra la compra pendiente con sus entradas y servicios: las butacas quedan libres y no cuenta como cancelación en los dashboards.
+      operationId: delete_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '204':
+          description: Compra eliminada.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pendiente (`compra.no.abandonable`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /compras/{id_compra}/confirmar:
     post:
       summary: "Confirmar una compra"
@@ -874,6 +1037,53 @@ components:
               direccion:
                 type: string
                 example: Av. Corrientes 1234, CABA
+    MapaButacas:
+      type: object
+      required:
+        - funcion
+        - capacidad
+        - disponibles
+        - filas
+      properties:
+        funcion:
+          $ref: '#/components/schemas/Funcion'
+        capacidad:
+          type: integer
+          description: Cantidad total de butacas de la sala.
+          example: 96
+        disponibles:
+          type: integer
+          description: Butacas libres para esta función.
+          example: 94
+        filas:
+          type: array
+          items:
+            type: object
+            required:
+              - fila
+              - butacas
+            properties:
+              fila:
+                type: string
+                example: A
+              butacas:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id_butaca
+                    - numero
+                    - ocupada
+                  properties:
+                    id_butaca:
+                      type: integer
+                      example: 1
+                    numero:
+                      type: integer
+                      example: 1
+                    ocupada:
+                      type: boolean
+                      example: false
     PeliculasPaginadas:
       type: object
       required:
@@ -1012,6 +1222,75 @@ components:
           nullable: true
         _last:
           type: string
+    CompraInput:
+      type: object
+      required:
+        - id_funcion
+        - butacas
+      properties:
+        id_funcion:
+          type: integer
+          minimum: 1
+          example: 1
+        butacas:
+          type: array
+          description: Identificadores de butaca de la sala de la función, sin repetir.
+          minItems: 1
+          maxItems: 4
+          items:
+            type: integer
+            minimum: 1
+          example: [12, 13]
+    Compra:
+      type: object
+      required:
+        - id_compra
+        - estado
+        - fecha_hora
+        - vence_en
+        - funcion
+        - butacas
+        - subtotal_entradas
+      properties:
+        id_compra:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pendiente
+        fecha_hora:
+          type: string
+          example: '2026-11-17T12:17:42-03:00'
+        vence_en:
+          type: string
+          nullable: true
+          description: Fin de la reserva. Solo mientras la compra está pendiente.
+          example: '2026-11-17T12:27:42-03:00'
+        funcion:
+          $ref: '#/components/schemas/Funcion'
+        butacas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_butaca
+              - fila
+              - numero
+            properties:
+              id_butaca:
+                type: integer
+                example: 12
+              fila:
+                type: string
+                example: A
+              numero:
+                type: integer
+                example: 1
+        subtotal_entradas:
+          type: string
+          description: Precio de la función por la cantidad de butacas.
+          example: '10000.00'
     Factura:
       type: object
       properties:
