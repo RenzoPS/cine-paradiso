@@ -191,15 +191,13 @@
                 <div class="footer-column">
                     <h3 class="footer-heading">Nuestras Sedes</h3>
                     <ul class="footer-list">
+                        {% for local in locales %}
                         <li>
-                            <strong>Sucursal Centro:</strong> Av. Corrientes 1245, CABA
+                            <strong>{{ local.local }}:</strong> {{ local.direccion }}
                         </li>
-                        <li>
-                            <strong>Sucursal Belgrano:</strong> Av. Cabildo 2180, CABA
-                        </li>
-                        <li>
-                            <strong>Sucursal Recoleta:</strong> Av. Santa Fe 1890, CABA
-                        </li>
+                        {% else %}
+                        <li>No hay sedes disponibles.</li>
+                        {% endfor %}
                     </ul>
                 </div>
 
