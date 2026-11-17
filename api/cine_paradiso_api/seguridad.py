@@ -13,6 +13,7 @@ from cine_paradiso_api.constants import (
     ERROR_CODE_AUTH_TOKEN_INVALID,
     ERROR_CODE_AUTH_TOKEN_MISSING,
     ROL_ADMIN,
+    ROL_CLIENTE,
     TOKEN_COOKIE_NOMBRE,
     TOKEN_DURACION_SEGUNDOS,
 )
@@ -77,6 +78,20 @@ def verificar_administrador():
             code=ERROR_CODE_AUTH_ACCESS_DENIED,
             message="Acceso denegado",
             description="No tienes los permisos de administrador requeridos para esta accion.",
+            status=403
+        )
+
+    return datos_usuario
+
+
+def verificar_cliente():
+    datos_usuario = verificar_autenticacion()
+
+    if datos_usuario.get('rol') != ROL_CLIENTE:
+        raise ErrorAPI(
+            code=ERROR_CODE_AUTH_ACCESS_DENIED,
+            message="Acceso denegado",
+            description="Esta accion esta disponible solo para clientes.",
             status=403
         )
 

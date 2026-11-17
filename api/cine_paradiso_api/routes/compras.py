@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, send_file
 
-from ..seguridad import verificar_administrador, verificar_autenticacion
+from ..seguridad import verificar_administrador, verificar_autenticacion, verificar_cliente
 from ..services.compras import (
     abandonar_compra,
     buscar_compra,
@@ -16,19 +16,19 @@ compras_bp = Blueprint('compras', __name__)
 
 @compras_bp.route('/compras', methods=['POST'])
 def post_compra():
-    id_usuario = verificar_autenticacion()['id_usuario']
+    id_usuario = verificar_cliente()['id_usuario']
     return jsonify(crear_compra(request.get_json(silent=True), id_usuario)), 201
 
 
 @compras_bp.route('/compras/<id_compra>', methods=['GET'])
 def get_compra(id_compra):
-    id_usuario = verificar_autenticacion()['id_usuario']
+    id_usuario = verificar_cliente()['id_usuario']
     return jsonify(buscar_compra(id_compra, id_usuario))
 
 
 @compras_bp.route('/compras/<id_compra>', methods=['DELETE'])
 def delete_compra(id_compra):
-    id_usuario = verificar_autenticacion()['id_usuario']
+    id_usuario = verificar_cliente()['id_usuario']
     abandonar_compra(id_compra, id_usuario)
     return '', 204
 

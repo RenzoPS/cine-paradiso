@@ -664,6 +664,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: No existe la función (`funcion.not.found`).
           content:
@@ -710,6 +716,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: No existe la compra o no es del usuario (`compra.not.found`).
           content:
@@ -740,6 +752,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
           content:
             application/json:
               schema:
