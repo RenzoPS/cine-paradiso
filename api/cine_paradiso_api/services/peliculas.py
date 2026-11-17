@@ -13,9 +13,12 @@ from ..constants import (
     TMDB_TIMEOUT,
 )
 from ..paginacion import paginar
+from ..repositories import transaccion
 from ..repositories.peliculas import (
     actualizar_pelicula as guardar_actualizacion_pelicula,
+    bloquear_pelicula,
     desactivar_pelicula as dar_baja_pelicula,
+    existe_compra_activa_para_pelicula,
     importar_pelicula as guardar_pelicula,
     listar_peliculas as consultar_peliculas,
     obtener_pelicula_por_id,
@@ -45,6 +48,15 @@ def _error_pelicula_no_encontrada(id_pelicula: int) -> ErrorAPI:
         message='Pelicula no encontrada',
         description=f'No existe una pelicula con id {id_pelicula}',
         status=404,
+    )
+
+
+def _error_pelicula_con_compras_activas(descripcion: str) -> ErrorAPI:
+    return ErrorAPI(
+        code='pelicula.has.active.sales',
+        message='La película tiene compras activas',
+        description=descripcion,
+        status=409,
     )
 
 
@@ -97,22 +109,39 @@ def buscar_pelicula(id_pelicula) -> dict:
 def actualizar_pelicula(id_pelicula, body) -> dict:
     id_validado = validar_id_pelicula(id_pelicula)
     datos = validar_cuerpo_edicion_pelicula(body)
-    pelicula = guardar_actualizacion_pelicula(id_validado, datos)
+    with transaccion() as conexion:
+        pelicula = bloquear_pelicula(conexion, id_validado)
+        if pelicula is None:
+            raise _error_pelicula_no_encontrada(id_validado)
 
-    if pelicula is None:
-        raise _error_pelicula_no_encontrada(id_validado)
+        cambia_periodo = (
+            datos['disponible_desde'] != pelicula['disponible_desde']
+            or datos['disponible_hasta'] != pelicula['disponible_hasta']
+        )
+        if cambia_periodo and existe_compra_activa_para_pelicula(conexion, id_validado):
+            raise _error_pelicula_con_compras_activas(
+                'No se puede modificar la disponibilidad de una película con funciones futuras con compras pendientes o pagadas'
+            )
 
-    return _formatear_pelicula(pelicula)
+        guardar_actualizacion_pelicula(conexion, id_validado, datos)
+
+    return _formatear_pelicula(obtener_pelicula_por_id(id_validado))
 
 
 def eliminar_pelicula(id_pelicula) -> dict:
     id_validado = validar_id_pelicula(id_pelicula)
-    pelicula = dar_baja_pelicula(id_validado)
+    with transaccion() as conexion:
+        if bloquear_pelicula(conexion, id_validado) is None:
+            raise _error_pelicula_no_encontrada(id_validado)
 
-    if pelicula is None:
-        raise _error_pelicula_no_encontrada(id_validado)
+        if existe_compra_activa_para_pelicula(conexion, id_validado):
+            raise _error_pelicula_con_compras_activas(
+                'No se puede dar de baja una película con funciones futuras con compras pendientes o pagadas'
+            )
 
-    return _formatear_pelicula(pelicula)
+        dar_baja_pelicula(conexion, id_validado)
+
+    return _formatear_pelicula(obtener_pelicula_por_id(id_validado))
 
 
 def _normalizar_detalle_tmdb(datos: dict, tmdb_id: int) -> dict:

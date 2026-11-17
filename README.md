@@ -206,7 +206,7 @@ Viewer" de VS Code.
 | GET | `/funciones/{id_funcion}` | Detalle de una función con película, sala, local, fecha/hora y precio | Público |
 | POST | `/funciones` | Programar una función con película, sala, fecha/hora y precio | Admin |
 | PUT | `/funciones/{id_funcion}` | Reemplazar película, sala, fecha/hora y precio | Admin |
-| DELETE | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
+| GET | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
 | GET | `/servicios` | Servicios activos | Público |
 | POST | `/servicios` | Alta de un servicio | Admin |
 | PUT | `/servicios/{id_servicio}` | Modificar un servicio | Admin |

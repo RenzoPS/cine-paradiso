@@ -1,7 +1,6 @@
 from sqlalchemy import text
 
-from ..utils import ErrorAPI
-from . import ejecutar_consulta, ejecutar_escalar
+from . import ejecutar_consulta, ejecutar_escalar, fila_a_dict
 from . import transaccion
 
 CAMPOS_PELICULA = '''
@@ -154,99 +153,23 @@ def obtener_pelicula_por_tmdb_id(tmdb_id: int) -> dict | None:
     return peliculas[0] if peliculas else None
 
 
-def actualizar_pelicula(id_pelicula: int, datos: dict) -> dict | None:
-    with transaccion() as conexion:
-        existe = conexion.execute(
-            text(
-                '''
-                SELECT id_pelicula, disponible_desde, disponible_hasta
-                FROM peliculas
-                WHERE id_pelicula = :id_pelicula
-                FOR UPDATE
-                '''
-            ),
-            {'id_pelicula': id_pelicula},
-        ).mappings().one_or_none()
+def bloquear_pelicula(conexion, id_pelicula: int) -> dict | None:
+    fila = conexion.execute(
+        text(
+            '''
+            SELECT id_pelicula, disponible_desde, disponible_hasta
+            FROM peliculas
+            WHERE id_pelicula = :id_pelicula
+            FOR UPDATE
+            '''
+        ),
+        {'id_pelicula': id_pelicula},
+    ).first()
 
-        if existe is None:
-            return None
-
-        disponible_desde_cambia = datos['disponible_desde'] != existe['disponible_desde']
-        disponible_hasta_cambia = datos['disponible_hasta'] != existe['disponible_hasta']
-
-        if disponible_desde_cambia or disponible_hasta_cambia:
-            if _existe_compra_activa_para_pelicula(conexion, id_pelicula):
-                raise ErrorAPI(
-                    code='pelicula.has.active.sales',
-                    message='La película tiene compras activas',
-                    description='No se puede modificar la disponibilidad de una película con funciones futuras con compras pendientes o pagadas',
-                    status=409,
-                )
-
-        conexion.execute(
-            text(
-                '''
-                UPDATE peliculas
-                SET sinopsis = :sinopsis,
-                    poster_url = :poster_url,
-                    clasificacion = :clasificacion,
-                    disponible_desde = :disponible_desde,
-                    disponible_hasta = :disponible_hasta
-                WHERE id_pelicula = :id_pelicula
-                '''
-            ),
-            {**datos, 'id_pelicula': id_pelicula},
-        )
-
-    return obtener_pelicula_por_id(id_pelicula)
+    return fila_a_dict(fila) if fila is not None else None
 
 
-def desactivar_pelicula(id_pelicula: int) -> dict | None:
-    with transaccion() as conexion:
-        existe = conexion.execute(
-            text(
-                '''
-                SELECT id_pelicula
-                FROM peliculas
-                WHERE id_pelicula = :id_pelicula
-                FOR UPDATE
-                '''
-            ),
-            {'id_pelicula': id_pelicula},
-        ).mappings().one_or_none()
-
-        if existe is None:
-            return None
-
-        if _existe_compra_activa_para_pelicula(conexion, id_pelicula):
-            raise ErrorAPI(
-                code='pelicula.has.active.sales',
-                message='La película tiene compras activas',
-                description='No se puede dar de baja una película con funciones futuras con compras pendientes o pagadas',
-                status=409,
-            )
-
-        conexion.execute(
-            text(
-                '''
-                UPDATE peliculas
-                SET disponible_desde = CASE
-                        WHEN disponible_desde IS NULL
-                          OR disponible_desde > UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
-                        THEN UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
-                        ELSE disponible_desde
-                    END,
-                    disponible_hasta = UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 1 SECOND
-                WHERE id_pelicula = :id_pelicula
-                '''
-            ),
-            {'id_pelicula': id_pelicula},
-        )
-
-    return obtener_pelicula_por_id(id_pelicula)
-
-
-def _existe_compra_activa_para_pelicula(conexion, id_pelicula: int) -> bool:
+def existe_compra_activa_para_pelicula(conexion, id_pelicula: int) -> bool:
     return conexion.execute(
         text(
             '''
@@ -261,6 +184,42 @@ def _existe_compra_activa_para_pelicula(conexion, id_pelicula: int) -> bool:
         ),
         {'id_pelicula': id_pelicula},
     ).scalar_one_or_none() is not None
+
+
+def actualizar_pelicula(conexion, id_pelicula: int, datos: dict) -> None:
+    conexion.execute(
+        text(
+            '''
+            UPDATE peliculas
+            SET sinopsis = :sinopsis,
+                poster_url = :poster_url,
+                clasificacion = :clasificacion,
+                disponible_desde = :disponible_desde,
+                disponible_hasta = :disponible_hasta
+            WHERE id_pelicula = :id_pelicula
+            '''
+        ),
+        {**datos, 'id_pelicula': id_pelicula},
+    )
+
+
+def desactivar_pelicula(conexion, id_pelicula: int) -> None:
+    conexion.execute(
+        text(
+            '''
+            UPDATE peliculas
+            SET disponible_desde = CASE
+                    WHEN disponible_desde IS NULL
+                      OR disponible_desde > UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
+                    THEN UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 2 SECOND
+                    ELSE disponible_desde
+                END,
+                disponible_hasta = UTC_TIMESTAMP() - INTERVAL 3 HOUR - INTERVAL 1 SECOND
+            WHERE id_pelicula = :id_pelicula
+            '''
+        ),
+        {'id_pelicula': id_pelicula},
+    )
 
 
 def importar_pelicula(datos: dict) -> int:

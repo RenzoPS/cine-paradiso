@@ -1,6 +1,6 @@
 from sqlalchemy import text
 
-from . import ejecutar_consulta, ejecutar_escalar
+from . import ejecutar_consulta, ejecutar_escalar, fila_a_dict
 
 CAMPOS_FUNCION = '''
     f.id_funcion,
@@ -104,7 +104,7 @@ def bloquear_sala(conexion, id_sala: int) -> int | None:
 
 
 def obtener_pelicula_para_funcion(conexion, id_pelicula: int) -> dict | None:
-    pelicula = conexion.execute(
+    fila = conexion.execute(
         text(
             '''
             SELECT duracion_min, disponible_desde, disponible_hasta
@@ -114,9 +114,9 @@ def obtener_pelicula_para_funcion(conexion, id_pelicula: int) -> dict | None:
             '''
         ),
         {'id_pelicula': id_pelicula},
-    ).mappings().one_or_none()
+    ).first()
 
-    return dict(pelicula) if pelicula is not None else None
+    return fila_a_dict(fila) if fila is not None else None
 
 
 def obtener_hora_actual(conexion):
