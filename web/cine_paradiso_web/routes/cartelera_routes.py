@@ -1,12 +1,13 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
-from cine_paradiso_web.constants import GENEROS_DISPONIBLES, SUCURSALES_DISPONIBLES
+from cine_paradiso_web.constants import GENEROS_DISPONIBLES
 from cine_paradiso_web.services.cartelera_service import (
     obtener_pelicula_por_id,
     obtener_peliculas_cartelera,
 )
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.funciones_service import listar_todas_funciones
+from cine_paradiso_web.services.locales_service import listar_locales
 
 cartelera_bp = Blueprint('cartelera', __name__)
 
@@ -30,11 +31,23 @@ def listar():
         busqueda=query_busqueda,
     )
 
+    respuesta_locales = listar_locales()
+
+    sucursales = [
+        {'id': '', 'nombre': 'Todas las sedes'}
+    ]
+
+    for local in respuesta_locales['locales']:
+        sucursales.append({
+            'id': str(local['id_local']),
+            'nombre': local['local'],
+        })
+
     return render_template(
         'cartelera.html',
         peliculas=peliculas,
         generos=GENEROS_DISPONIBLES,
-        sucursales=SUCURSALES_DISPONIBLES,
+        sucursales=sucursales,
         filtro_sucursal=sucursal_filtro,
         filtro_fecha=fecha_filtro,
         filtro_genero=genero_filtro,
