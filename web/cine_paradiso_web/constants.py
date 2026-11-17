@@ -15,13 +15,6 @@ GENEROS_DISPONIBLES = [
     'Todos', 'Drama', 'Comedia', 'Acción', 'Ciencia Ficción', 'Suspenso', 'Terror', 'Aventura', 'Romance'
 ]
 
-SUCURSALES_DISPONIBLES = [
-    {'id': '', 'nombre': 'Todas las sedes'},
-    {'id': '1', 'nombre': 'Sucursal Centro'},
-    {'id': '2', 'nombre': 'Sucursal Belgrano'},
-    {'id': '3', 'nombre': 'Sucursal Recoleta'}
-]
-
 PELICULAS = []
 
 TOKEN_COOKIE_NOMBRE = 'token_sesion'
