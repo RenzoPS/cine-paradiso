@@ -1,12 +1,14 @@
+
 from flask import Blueprint, redirect, render_template, request, url_for
 
-from cine_paradiso_web.constants import GENEROS_DISPONIBLES, SUCURSALES_DISPONIBLES
+from cine_paradiso_web.constants import GENEROS_DISPONIBLES
 from cine_paradiso_web.services.cartelera_service import (
     obtener_pelicula_por_id,
     obtener_peliculas_cartelera,
 )
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.funciones_service import listar_todas_funciones
+
 
 cartelera_bp = Blueprint('cartelera', __name__)
 
@@ -34,7 +36,6 @@ def listar():
         'cartelera.html',
         peliculas=peliculas,
         generos=GENEROS_DISPONIBLES,
-        sucursales=SUCURSALES_DISPONIBLES,
         filtro_sucursal=sucursal_filtro,
         filtro_fecha=fecha_filtro,
         filtro_genero=genero_filtro,
@@ -47,12 +48,23 @@ def detalle(id_pelicula: int):
     pelicula = obtener_pelicula_por_id(id_pelicula)
 
     if pelicula is None:
-        # Template de detalle con estado no disponible o 404
-        return render_template('detalle.html', pelicula=None, id_pelicula=id_pelicula)
+        return render_template(
+            'detalle.html',
+            pelicula=None,
+            id_pelicula=id_pelicula,
+        )
+
+    sucursal_filtro = request.args.get('sucursal', '').strip()
+
+    filtros = {'id_pelicula': id_pelicula}
+
+    if sucursal_filtro:
+        filtros['id_local'] = sucursal_filtro
 
     error_funciones = None
+
     try:
-        funciones = listar_todas_funciones({'id_pelicula': id_pelicula})['funciones']
+        funciones = listar_todas_funciones(filtros)['funciones']
     except ApiError as error:
         funciones = []
         error_funciones = error.mensaje
