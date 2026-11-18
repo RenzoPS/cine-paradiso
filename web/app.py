@@ -10,6 +10,7 @@ from cine_paradiso_web.routes.compras_routes import compras_bp
 from cine_paradiso_web.routes.butacas_routes import butacas_bp
 from cine_paradiso_web.routes.auth import auth_bp
 from cine_paradiso_web.routes.usuarios import usuarios_bp
+from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.locales_service import listar_locales
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
@@ -29,7 +30,7 @@ def _filtro_fecha_legible(valor):
 def cargar_locales():
     try:
         return {'locales': listar_locales()['locales']}
-    except Exception:
+    except ApiError:
         logging.exception('No se pudieron cargar los locales.')
         return {'locales': []}
 
