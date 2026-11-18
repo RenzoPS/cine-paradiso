@@ -46,6 +46,14 @@ def validar_ingreso_qr(qr_token):
     )
 
 
+def listar_compras_validacion_admin():
+    return llamar_api('GET', 'compras/admin')
+
+
+def validar_ingreso_por_id_compra(id_compra):
+    return llamar_api('POST', f'compras/{id_compra}/validar')
+
+
 def _motivo_del_error(respuesta):
     try:
         return respuesta.json()['errors'][0]['description']
