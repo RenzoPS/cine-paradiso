@@ -7,7 +7,7 @@ from cine_paradiso_web.services.cartelera_service import (
     obtener_peliculas_cartelera,
 )
 from cine_paradiso_web.services.api_service import ApiError
-from cine_paradiso_web.services.funciones_service import listar_funciones
+from cine_paradiso_web.services.funciones_service import listar_todas_funciones
 
 
 cartelera_bp = Blueprint('cartelera', __name__)
@@ -56,11 +56,7 @@ def detalle(id_pelicula: int):
 
     sucursal_filtro = request.args.get('sucursal', '').strip()
 
-    filtros = {
-        'id_pelicula': id_pelicula,
-        '_limit': 100,
-        '_offset': 0,
-    }
+    filtros = {'id_pelicula': id_pelicula}
 
     if sucursal_filtro:
         filtros['id_local'] = sucursal_filtro
@@ -68,20 +64,7 @@ def detalle(id_pelicula: int):
     error_funciones = None
 
     try:
-        respuesta = listar_funciones(filtros)
-        funciones = respuesta['funciones']
-
-        for offset in range(
-            respuesta['_limit'],
-            respuesta['_total'],
-            respuesta['_limit'],
-        ):
-            filtros_pagina = dict(filtros)
-            filtros_pagina['_offset'] = offset
-
-            pagina = listar_funciones(filtros_pagina)
-            funciones.extend(pagina['funciones'])
-
+        funciones = listar_todas_funciones(filtros)['funciones']
     except ApiError as error:
         funciones = []
         error_funciones = error.mensaje
