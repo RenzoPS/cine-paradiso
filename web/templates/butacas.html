@@ -63,7 +63,7 @@
             <div class="movie-info-details">
                 <h4>{{ funcion.pelicula or funcion.titulo or 'Función seleccionada' }}</h4>
                 <p class="movie-meta-tag">{{ funcion.sala or 'Sala' }}</p>
-                <p><strong>FECHA Y HORA:</strong><br><span>{{ funcion.fecha_hora or '-' }}</span></p>
+                <p><strong>FECHA Y HORA:</strong><br><span>{{ (funcion.fecha_hora | fecha_legible) if funcion.fecha_hora else '-' }}</span></p>
                 <p><strong>DISPONIBLES:</strong><br><span>{{ disponibles }} / {{ capacidad }}</span></p>
             </div>
         </div>

@@ -25,9 +25,7 @@ def butacas(id_funcion: int):
         try:
             ids_butacas = [int(id_b) for id_b in butacas_seleccionadas]
             compra = crear_compra_butacas(id_funcion, ids_butacas)
-            flash(f"Reserva creada (Compra #{compra.get('id_compra')}).", 'success')
-            # Cuando el equipo habilite el paso de servicios/resumen, se redirige con compra['id_compra']
-            return redirect(url_for('butacas.butacas', id_funcion=id_funcion))
+            return redirect(url_for('compras.resumen', id_compra=compra['id_compra']))
         except ApiError as error:
             flash(error.mensaje, 'error')
             return redirect(url_for('butacas.butacas', id_funcion=id_funcion))
@@ -46,3 +44,4 @@ def butacas(id_funcion: int):
         capacidad=mapa.get('capacidad', 0),
         disponibles=mapa.get('disponibles', 0),
     )
+
