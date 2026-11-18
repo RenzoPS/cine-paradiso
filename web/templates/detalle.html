@@ -80,13 +80,18 @@
                     {% elif funciones %}
                         <ul class="functions-list">
                             {% for funcion in funciones %}
-                                <li class="function-item">
-                                    <span class="function-branch">{{ funcion.local }} · {{ funcion.sala }}</span>
-                                    <span class="function-time">{{ funcion.fecha_hora | fecha_legible }}</span>
-                                    <span>${{ funcion.precio }}</span>
+                                <li>
+                                    <a href="{{ url_for('butacas.butacas', id_funcion=funcion.id_funcion) }}" 
+                                       class="function-item" 
+                                       style="text-decoration: none; color: inherit;">
+                                        <span class="function-branch">{{ funcion.local }} · {{ funcion.sala }}</span>
+                                        <span class="function-time">{{ funcion.fecha_hora | fecha_legible }}</span>
+                                        <span>${{ funcion.precio }}</span>
+                                    </a>
                                 </li>
                             {% endfor %}
                         </ul>
+
                     {% else %}
                         <p class="functions-help">No hay funciones disponibles para esta película.</p>
                     {% endif %}
