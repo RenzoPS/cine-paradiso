@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import bindparam, text
 
 from ..constants import ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA, ESTADO_VENCIDA
-from . import ejecutar_consulta, fila_a_dict, transaccion
+from . import ejecutar_consulta, ejecutar_escalar, fila_a_dict, transaccion
 
 def obtener_compra_por_id(id_compra: int) -> dict | None:
     filas = ejecutar_consulta(
@@ -15,6 +15,44 @@ def obtener_compra_por_id(id_compra: int) -> dict | None:
         {'id_compra': id_compra},
     )
     return filas[0] if filas else None
+
+
+def listar_compras_de_usuario(id_usuario: int, limit: int, offset: int) -> tuple[list[dict], int]:
+    total = ejecutar_escalar(
+        """
+        SELECT COUNT(*)
+        FROM compras
+        WHERE fk_id_usuario = :id_usuario
+        """,
+        {'id_usuario': id_usuario},
+    ) or 0
+
+    sql = """
+        SELECT
+            c.id_compra,
+            c.estado,
+            c.fecha_hora,
+            f.id_funcion,
+            p.titulo AS pelicula,
+            p.poster_url,
+            s.nombre AS sala,
+            l.nombre AS local,
+            f.fecha_hora AS fecha_hora_funcion,
+            f.precio
+        FROM compras c
+        JOIN funciones f ON f.id_funcion = c.fk_id_funcion
+        JOIN peliculas p ON p.id_pelicula = f.fk_id_pelicula
+        JOIN salas s ON s.id_sala = f.fk_id_sala
+        JOIN locales l ON l.id_local = s.fk_id_local
+        WHERE c.fk_id_usuario = :id_usuario
+        ORDER BY c.fecha_hora DESC, c.id_compra DESC
+        LIMIT :limit OFFSET :offset
+    """
+    compras = ejecutar_consulta(
+        sql,
+        {'id_usuario': id_usuario, 'limit': limit, 'offset': offset},
+    )
+    return compras, total
 
 
 def obtener_entradas_de_compra(id_compra: int) -> list[dict]:

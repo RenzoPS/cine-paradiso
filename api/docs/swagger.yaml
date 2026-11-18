@@ -632,6 +632,41 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
   /compras:
+    get:
+      summary: "Listar las compras del cliente"
+      description: |
+        Devuelve el listado paginado de las compras del cliente autenticado, ordenadas de la más reciente a la más antigua. Si alguna compra está `pendiente`, primero vence las reservas expiradas de su función para informar el estado real.
+      operationId: get_compras
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Listado paginado de compras del cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComprasPaginadas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no tiene compras propias.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       summary: "Reservar butacas"
       description: |
@@ -1309,6 +1344,113 @@ components:
           type: string
           description: Precio de la función por la cantidad de butacas.
           example: '10000.00'
+    ComprasPaginadas:
+      type: object
+      required:
+        - compras
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        compras:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompraListado'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    CompraListado:
+      type: object
+      required:
+        - id_compra
+        - estado
+        - fecha_hora
+        - funcion
+        - butacas
+        - subtotal_entradas
+        - puede_cancelar
+        - tiene_qr
+      properties:
+        id_compra:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pagada
+        fecha_hora:
+          type: string
+          format: date-time
+          example: '2026-11-17T12:17:42-03:00'
+        funcion:
+          type: object
+          required:
+            - id_funcion
+            - pelicula
+            - poster_url
+            - sala
+            - local
+            - fecha_hora
+            - precio
+          properties:
+            id_funcion:
+              type: integer
+              example: 1
+            pelicula:
+              type: string
+              example: Cinema Paradiso
+            poster_url:
+              type: string
+              format: uri
+              nullable: true
+            sala:
+              type: string
+              example: Sala 1
+            local:
+              type: string
+              example: Cine Paradiso - Centro
+            fecha_hora:
+              type: string
+              format: date-time
+              example: '2026-11-20T20:30:00-03:00'
+            precio:
+              type: string
+              example: '5000.00'
+        butacas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_butaca
+              - fila
+              - numero
+            properties:
+              id_butaca:
+                type: integer
+                example: 12
+              fila:
+                type: string
+                example: A
+              numero:
+                type: integer
+                example: 1
+        subtotal_entradas:
+          type: string
+          example: '10000.00'
+        puede_cancelar:
+          type: boolean
+          description: "`true` si la compra está pagada y faltan al menos `HORAS_LIMITE_CANCELACION` horas para la función."
+          example: true
+        tiene_qr:
+          type: boolean
+          description: "`true` si la compra está en estado `pagada` o `usada`."
+          example: true
     Factura:
       type: object
       properties:
