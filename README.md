@@ -26,7 +26,7 @@ cátedra Lanzillotta, 2.º cuatrimestre 2026.
 ## Herramientas
 
 | Componente | Uso | Versión |
-|------------|-----|---------|
+|------------|-----|---------
 | Python | API y web | 3.10 o superior |
 | Flask | API REST (JSON) y web (templates Jinja) | 3.1.3 |
 | SQLAlchemy (solo Core, sin ORM) | Conexión y ejecución de SQL escrito a mano con `text()` | 2.1.5 |
@@ -89,7 +89,7 @@ API y el web; la base queda corriendo (`docker compose stop` para frenarla).
 Requisitos: Docker y Docker Compose. No hace falta Python instalado.
 
 ```bash
-cp .env.example .env              # completar API_SECRET_KEY
+cp .env.example .env              # completar API/WEB_SECRET_KEY y TMDB_API_KEY
 docker compose up --build         # -d para dejarlo en segundo plano
 ```
 
