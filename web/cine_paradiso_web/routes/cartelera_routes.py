@@ -1,3 +1,4 @@
+
 from flask import Blueprint, redirect, render_template, request, url_for
 
 from cine_paradiso_web.constants import GENEROS_DISPONIBLES
@@ -6,8 +7,8 @@ from cine_paradiso_web.services.cartelera_service import (
     obtener_peliculas_cartelera,
 )
 from cine_paradiso_web.services.api_service import ApiError
-from cine_paradiso_web.services.funciones_service import listar_todas_funciones
-from cine_paradiso_web.services.locales_service import listar_locales
+from cine_paradiso_web.services.funciones_service import listar_funciones
+
 
 cartelera_bp = Blueprint('cartelera', __name__)
 
@@ -31,23 +32,10 @@ def listar():
         busqueda=query_busqueda,
     )
 
-    respuesta_locales = listar_locales()
-
-    sucursales = [
-        {'id': '', 'nombre': 'Todas las sedes'}
-    ]
-
-    for local in respuesta_locales['locales']:
-        sucursales.append({
-            'id': str(local['id_local']),
-            'nombre': local['local'],
-        })
-
     return render_template(
         'cartelera.html',
         peliculas=peliculas,
         generos=GENEROS_DISPONIBLES,
-        sucursales=sucursales,
         filtro_sucursal=sucursal_filtro,
         filtro_fecha=fecha_filtro,
         filtro_genero=genero_filtro,
@@ -60,12 +48,40 @@ def detalle(id_pelicula: int):
     pelicula = obtener_pelicula_por_id(id_pelicula)
 
     if pelicula is None:
-        # Template de detalle con estado no disponible o 404
-        return render_template('detalle.html', pelicula=None, id_pelicula=id_pelicula)
+        return render_template(
+            'detalle.html',
+            pelicula=None,
+            id_pelicula=id_pelicula,
+        )
+
+    sucursal_filtro = request.args.get('sucursal', '').strip()
+
+    filtros = {
+        'id_pelicula': id_pelicula,
+        '_limit': 100,
+        '_offset': 0,
+    }
+
+    if sucursal_filtro:
+        filtros['id_local'] = sucursal_filtro
 
     error_funciones = None
+
     try:
-        funciones = listar_todas_funciones({'id_pelicula': id_pelicula})['funciones']
+        respuesta = listar_funciones(filtros)
+        funciones = respuesta['funciones']
+
+        for offset in range(
+            respuesta['_limit'],
+            respuesta['_total'],
+            respuesta['_limit'],
+        ):
+            filtros_pagina = dict(filtros)
+            filtros_pagina['_offset'] = offset
+
+            pagina = listar_funciones(filtros_pagina)
+            funciones.extend(pagina['funciones'])
+
     except ApiError as error:
         funciones = []
         error_funciones = error.mensaje
