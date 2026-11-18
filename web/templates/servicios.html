@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Servicios - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/servicios.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="servicios-paso">
+    <header class="servicios-encabezado">
+        <h1>Agregá servicios a tu compra</h1>
+        <p>Elegí las cantidades que quieras. Podés continuar sin agregar nada.</p>
+    </header>
+
+    <form method="post" action="{{ url_for('servicios.paso_servicios', id_compra=id_compra) }}">
+        <ul class="servicios-lista">
+            {% for servicio in servicios %}
+            {% set cantidad = cantidades.get(servicio.id_servicio, 0) %}
+            <li class="servicio-tarjeta" data-precio="{{ servicio.precio }}">
+                <div class="servicio-datos">
+                    <h2>{{ servicio.nombre }}</h2>
+                    {% if servicio.descripcion %}<p>{{ servicio.descripcion }}</p>{% endif %}
+                    <span class="servicio-precio">${{ servicio.precio }}</span>
+                </div>
+                <div class="servicio-cantidad">
+                    <button type="button" class="servicio-boton" data-delta="-1"
+                            aria-label="Quitar uno: {{ servicio.nombre }}">−</button>
+                    <input type="number" name="cantidad_{{ servicio.id_servicio }}" value="{{ cantidad }}"
+                           min="0" max="20" inputmode="numeric"
+                           aria-label="Cantidad de {{ servicio.nombre }}">
+                    <button type="button" class="servicio-boton" data-delta="1"
+                            aria-label="Agregar uno: {{ servicio.nombre }}">+</button>
+                </div>
+            </li>
+            {% else %}
+            <li class="servicios-vacio">Por el momento no hay servicios disponibles.</li>
+            {% endfor %}
+        </ul>
+
+        <div class="servicios-pie">
+            <p>Subtotal servicios: <strong>$<span id="subtotal">{{ subtotal }}</span></strong></p>
+            <button class="btn btn-primary" type="submit">Guardar servicios</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var tarjetas = document.querySelectorAll('.servicio-tarjeta');
+        var subtotal = document.getElementById('subtotal');
+
+        function recalcular() {
+            var total = 0;
+            tarjetas.forEach(function (tarjeta) {
+                var cantidad = parseInt(tarjeta.querySelector('input').value, 10) || 0;
+                total += cantidad * parseFloat(tarjeta.dataset.precio);
+            });
+            subtotal.textContent = total.toFixed(2);
+        }
+
+        tarjetas.forEach(function (tarjeta) {
+            var campo = tarjeta.querySelector('input');
+            tarjeta.querySelectorAll('.servicio-boton').forEach(function (boton) {
+                boton.addEventListener('click', function () {
+                    var nuevo = (parseInt(campo.value, 10) || 0) + parseInt(boton.dataset.delta, 10);
+                    campo.value = Math.min(20, Math.max(0, nuevo));
+                    recalcular();
+                });
+            });
+            campo.addEventListener('input', recalcular);
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,40 +1,54 @@
 from flask import Blueprint, jsonify, request
 
-from ..constants import BASE_URL
-from ..services import servicios as servicios_service
+from ..seguridad import verificar_administrador, verificar_cliente
+from ..services.servicios import (
+    actualizar_servicio,
+    buscar_servicio,
+    buscar_servicios_de_compra,
+    crear_servicio,
+    definir_servicios_de_compra,
+    eliminar_servicio,
+    listar_servicios,
+)
 
-# TODO (Luis): proteger con el decorador de auth: GET para cliente y admin,
-# el resto solo admin.
-servicios_bp = Blueprint('servicios', __name__, url_prefix=f'{BASE_URL}/servicios')
-
-
-@servicios_bp.get('')
-def listar_servicios():
-    return jsonify(servicios_service.listar(request.args)), 200
-
-
-@servicios_bp.get('/<int:servicio_id>')
-def obtener_servicio(servicio_id: int):
-    return jsonify(servicios_service.obtener(servicio_id)), 200
+servicios_bp = Blueprint('servicios', __name__)
 
 
-@servicios_bp.post('')
-def crear_servicio():
-    return jsonify(servicios_service.crear(request.get_json(silent=True))), 201
+@servicios_bp.route('/servicios', methods=['GET'])
+def get_servicios():
+    return jsonify(listar_servicios(request.args))
 
 
-@servicios_bp.put('/<int:servicio_id>')
-def modificar_servicio(servicio_id: int):
-    return jsonify(servicios_service.modificar(servicio_id, request.get_json(silent=True))), 200
+@servicios_bp.route('/servicios/<id_servicio>', methods=['GET'])
+def get_servicio(id_servicio):
+    return jsonify(buscar_servicio(id_servicio))
 
 
-@servicios_bp.patch('/<int:servicio_id>')
-def cambiar_estado_servicio(servicio_id: int):
-    return jsonify(servicios_service.cambiar_estado(servicio_id, request.get_json(silent=True))), 200
+@servicios_bp.route('/servicios', methods=['POST'])
+def post_servicio():
+    verificar_administrador()
+    return jsonify(crear_servicio(request.get_json(silent=True))), 201
 
 
-@servicios_bp.delete('/<int:servicio_id>')
-def dar_de_baja_servicio(servicio_id: int):
-    servicios_service.dar_de_baja(servicio_id)
+@servicios_bp.route('/servicios/<id_servicio>', methods=['PUT'])
+def put_servicio(id_servicio):
+    verificar_administrador()
+    return jsonify(actualizar_servicio(id_servicio, request.get_json(silent=True)))
 
-    return '', 204
+
+@servicios_bp.route('/servicios/<id_servicio>', methods=['DELETE'])
+def delete_servicio(id_servicio):
+    verificar_administrador()
+    return jsonify(eliminar_servicio(id_servicio))
+
+
+@servicios_bp.route('/compras/<id_compra>/servicios', methods=['GET'])
+def get_servicios_de_compra(id_compra):
+    id_usuario = verificar_cliente()['id_usuario']
+    return jsonify(buscar_servicios_de_compra(id_compra, id_usuario))
+
+
+@servicios_bp.route('/compras/<id_compra>/servicios', methods=['PUT'])
+def put_servicios_de_compra(id_compra):
+    id_usuario = verificar_cliente()['id_usuario']
+    return jsonify(definir_servicios_de_compra(id_compra, request.get_json(silent=True), id_usuario))
