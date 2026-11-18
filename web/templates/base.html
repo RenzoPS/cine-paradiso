@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -13,13 +14,11 @@
 <body class="site-body">
     {% set app_ctx = url_for.__globals__.get('current_app') %}
     {% set vistas = app_ctx.view_functions if app_ctx else {} %}
-    {% set url_inicio = url_for('cartelera.listar') if 'cartelera.listar' in vistas else (url_for('cartelera.index') if
-    'cartelera.index' in vistas else '#') %}
+    {% set url_inicio = url_for('cartelera.listar') if 'cartelera.listar' in vistas else (url_for('cartelera.index') if 'cartelera.index' in vistas else '#') %}
     {% set url_login = url_for('auth.login') if 'auth.login' in vistas else '#' %}
     {% set url_registro = url_for('auth.registro') if 'auth.registro' in vistas else '#' %}
     {% set url_logout = url_for('auth.logout') if 'auth.logout' in vistas else '#' %}
-    {% set url_perfil = url_for('usuarios.perfil') if 'usuarios.perfil' in vistas else (url_for('auth.perfil') if
-    'auth.perfil' in vistas else '#') %}
+    {% set url_perfil = url_for('usuarios.perfil') if 'usuarios.perfil' in vistas else (url_for('auth.perfil') if 'auth.perfil' in vistas else '#') %}
     {% set url_admin = url_for('admin.index') if 'admin.index' in vistas else '#' %}
 
     <header class="site-header">
@@ -51,7 +50,7 @@
 
             {# Menú de navegación principal #}
             <nav class="nav-menu" id="nav-menu">
-                {# Selector de sucursal / local #}
+                {# Selector dinámico de sucursal / local #}
                 <form class="branch-selector-form" method="GET" action="{{ url_inicio }}"
                     aria-label="Seleccionar sucursal">
                     <label for="sucursal-select" class="sr-only">Seleccionar sucursal:</label>
@@ -63,12 +62,12 @@
                         </svg>
                         <select name="sucursal" id="sucursal-select" class="nav-select" onchange="this.form.submit()">
                             <option value="">Todas las sucursales</option>
-                            <option value="1" {% if request.args.get('sucursal')=='1' %}selected{% endif %}>Sucursal 1
-                            </option>
-                            <option value="2" {% if request.args.get('sucursal')=='2' %}selected{% endif %}>Sucursal 2
-                            </option>
-                            <option value="3" {% if request.args.get('sucursal')=='3' %}selected{% endif %}>Sucursal 3
-                            </option>
+                            {% for local in locales %}
+                                <option value="{{ local.id_local }}"
+                                    {% if request.args.get('sucursal') == local.id_local|string %}selected{% endif %}>
+                                    {{ local.local }}
+                                </option>
+                            {% endfor %}
                         </select>
                     </div>
                 </form>
@@ -206,11 +205,9 @@
                     <h3 class="footer-heading">Explorar</h3>
                     <ul class="footer-list">
                         <li><a href="{{ url_inicio }}" class="footer-link">Cartelera Semanal</a></li>
-                        <li><a href="{{ url_inicio }}#proximos-estrenos" class="footer-link">Próximos Reestrenos</a>
-                        </li>
+                        <li><a href="{{ url_inicio }}#proximos-estrenos" class="footer-link">Próximos Reestrenos</a></li>
                         <li><a href="{{ url_inicio }}#servicios" class="footer-link">Servicios & Confitería</a></li>
-                        <li><a href="{{ url_inicio }}#preguntas-frecuentes" class="footer-link">Preguntas Frecuentes</a>
-                        </li>
+                        <li><a href="{{ url_inicio }}#preguntas-frecuentes" class="footer-link">Preguntas Frecuentes</a></li>
                     </ul>
                 </div>
 
@@ -246,3 +243,4 @@
 </body>
 
 </html>
+
