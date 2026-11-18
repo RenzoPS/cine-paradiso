@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 
 from cine_paradiso_web.constants import HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE
-from cine_paradiso_web.services.compras import confirmar_compra
+from cine_paradiso_web.services.compras import confirmar_compra, obtener_qr_base64
 
 compras_bp = Blueprint('compras', __name__)
 
@@ -21,6 +21,8 @@ def confirmar(id_compra):
     if motivo is not None:
         return render_template('compras/no_confirmada.html', motivo=motivo)
 
+    qr_imagen = obtener_qr_base64(id_compra, token)
+
     return render_template(
         'compras/confirmacion.html',
         factura=factura,
@@ -29,7 +31,7 @@ def confirmar(id_compra):
         mail_enviado=factura.get('mail_enviado'),
         compra={'id_compra': id_compra},
         horas_limite=HORAS_LIMITE_CANCELACION,
-        qr_imagen=None,
+        qr_imagen=qr_imagen,
     )
 
 
