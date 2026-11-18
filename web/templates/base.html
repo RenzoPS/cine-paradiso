@@ -107,6 +107,10 @@
                     <a href="{{ url_admin }}" class="nav-link nav-link-admin">
                         Backoffice
                     </a>
+                    {% elif session.get('usuario').get('rol') == 'cliente' %}
+                    <a href="{{ url_for('compras.listar') }}" class="nav-link">
+                        Mis entradas
+                    </a>
                     {% endif %}
 
                     <a href="{{ url_perfil }}" class="nav-link">

@@ -4,6 +4,11 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from cine_paradiso_web.seguridad import verificar_administrador
 from cine_paradiso_web.services.api_service import ApiError
+from cine_paradiso_web.services.compras import (
+    listar_compras_validacion_admin,
+    validar_ingreso_por_id_compra,
+    validar_ingreso_qr,
+)
 from cine_paradiso_web.services.peliculas_service import (
     actualizar_pelicula as guardar_pelicula,
     buscar_peliculas_tmdb as consultar_tmdb,
@@ -364,3 +369,68 @@ def editar_funcion(id_funcion):
         salas=salas,
         id_local=id_local,
     )
+
+
+@admin_bp.route('/validar', methods=['GET', 'POST'])
+def ingresar_qr():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    resultado_valido = None
+    motivo_rechazo = None
+
+    if request.method == 'POST':
+        valor_compra = request.form.get('id_compra', '').strip()
+        try:
+            id_compra = int(valor_compra)
+            if id_compra < 1:
+                raise ValueError
+        except ValueError:
+            motivo_rechazo = 'La compra seleccionada no es válida.'
+        else:
+            try:
+                resultado_valido = validar_ingreso_por_id_compra(id_compra)
+            except ApiError as error:
+                motivo_rechazo = error.mensaje
+
+    try:
+        compras = listar_compras_validacion_admin()['compras']
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        compras = []
+
+    return render_template(
+        'admin/validar_qr.html',
+        qr_token=None,
+        compras=compras,
+        resultado_valido=resultado_valido,
+        motivo_rechazo=motivo_rechazo,
+    )
+
+
+@admin_bp.route('/validar/<qr_token>', methods=['GET', 'POST'])
+def validar_qr(qr_token):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    resultado_valido = None
+    motivo_rechazo = None
+
+    if request.method == 'POST':
+        try:
+            resultado_valido = validar_ingreso_qr(qr_token)
+        except ApiError as error:
+            motivo_rechazo = error.mensaje
+
+    return render_template(
+        'admin/validar_qr.html',
+        qr_token=qr_token,
+        compras=[],
+        resultado_valido=resultado_valido,
+        motivo_rechazo=motivo_rechazo,
+    )
+
+
+

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancelar compra - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="checkout checkout-centrado card">
+    <h1 class="checkout-title">¿Querés cancelar tu compra?</h1>
+    <p class="checkout-motivo">Se liberan tus butacas y tu entrada deja de valer. Podés cancelar hasta {{ horas_limite }} horas antes de la función.</p>
+
+    <div class="checkout-acciones">
+        <form method="post" action="{{ url_for('compras.confirmar_cancelacion', id_compra=id_compra) }}">
+            <button type="submit" class="btn btn-peligro">Sí, cancelar compra</button>
+        </form>
+
+        <a href="{{ url_for('cartelera.listar') }}" class="btn btn-outline">No, volver</a>
+    </div>
+</section>
+{% endblock %}
