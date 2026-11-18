@@ -83,6 +83,10 @@ ESTADO_CANCELADA = 'cancelada'
 MINUTOS_RESERVA = 10
 MAX_BUTACAS_POR_COMPRA = 4
 
+# Entre dos funciones de una misma sala: limpieza al terminar y apertura antes de empezar.
+MINUTOS_LIMPIEZA_SALA = 15
+MINUTOS_APERTURA_SALA = 15
+
 QR_SALT   = 'qr-compra'
 QR_ESCALA = 8
 
