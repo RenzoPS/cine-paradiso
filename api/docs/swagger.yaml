@@ -868,6 +868,141 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /compras/{id_compra}/qr:
+    get:
+      summary: "Obtener el QR de una compra"
+      description: "Devuelve la imagen PNG del código QR de una compra propia que ya fue pagada o usada."
+      operationId: get_qr_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Imagen PNG del código QR de la compra.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra todavía no fue pagada (`qr.not.issued`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/validar:
+    post:
+      summary: "Validar el QR en el ingreso a la sala"
+      description: "Valida el token del QR para una función del día actual y marca la compra como usada. Requiere rol Admin."
+      operationId: post_validar_compra
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qr_token
+                - id_funcion
+              additionalProperties: false
+              properties:
+                qr_token:
+                  type: string
+                  description: Token firmado contenido en el código QR de la compra.
+                id_funcion:
+                  type: integer
+                  minimum: 1
+                  description: Identificador de la función a la que se ingresa.
+            example:
+              qr_token: eyJpZF9jb21wcmEiOjF9.signature
+              id_funcion: 1
+      responses:
+        '200':
+          description: Ingreso válido; la compra quedó marcada como usada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id_compra
+                  - estado
+                  - fecha_validacion
+                  - butacas
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 1
+                  estado:
+                    type: string
+                    enum:
+                      - usada
+                    example: usada
+                  fecha_validacion:
+                    type: string
+                    format: date-time
+                    example: '2026-11-17T20:15:00-03:00'
+                  butacas:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - E8
+                      - E9
+        '400':
+          description: Cuerpo inválido o token QR inválido (`qr.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Se requieren permisos de administrador (`auth.access.denied`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: QR ya utilizado (`qr.already.used`), cancelado (`qr.cancelled`), compra sin pagar (`qr.unpaid`), de otra función (`qr.wrong.showtime`) o de otro día (`qr.wrong.date`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     TokenSesion:
