@@ -18,5 +18,64 @@ services:
       retries: 20
       start_period: 20s
 
+  api:
+    build: ./api
+    container_name: cine-paradiso-api
+    restart: unless-stopped
+    environment:
+      # Adentro de la red de compose la base se llama "db" y escucha en el 3306.
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-cine_paradiso}
+      API_SECRET_KEY: ${API_SECRET_KEY}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      # El QR apunta al web tal como se ve desde el navegador.
+      WEB_URL: http://localhost:${WEB_PORT:-5001}
+      # Adentro de la red de compose el servidor de mail se llama "mailpit".
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USER: ${MAIL_USER:-cine}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-cine}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@cineparadiso.com}
+    ports:
+      - "${API_PORT:-5000}:5000"
+    depends_on:
+      # Espera a que MySQL acepte conexiones, no solo a que el contenedor exista.
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Servidor de mail de prueba: atrapa los mails y los muestra en http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit
+    container_name: cine-paradiso-mailpit
+    restart: unless-stopped
+    environment:
+      # Acepta cualquier usuario y contraseña.
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      # Se arma su propio certificado: el envío de la API pide una conexión cifrada (starttls).
+      MP_SMTP_TLS_CERT: sans:localhost
+      MP_SMTP_TLS_KEY: sans:localhost
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  web:
+    build: ./web
+    container_name: cine-paradiso-web
+    restart: unless-stopped
+    environment:
+      # Adentro de la red de compose la API se llama "api".
+      API_URL: http://api:5000/cine_paradiso_api
+      WEB_SECRET_KEY: ${WEB_SECRET_KEY:-solo-para-desarrollo}
+    ports:
+      - "${WEB_PORT:-5001}:5001"
+    depends_on:
+      - api
+
 volumes:
   mysql_data:
