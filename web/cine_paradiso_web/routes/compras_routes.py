@@ -3,7 +3,14 @@ from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from cine_paradiso_web.constants import ESTADO_PENDIENTE, HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE, TZ_ARG
-from cine_paradiso_web.services.compras import abandonar_compra, cancelar_compra, confirmar_compra, obtener_compra
+from cine_paradiso_web.services.compras import (
+    abandonar_compra,
+    cancelar_compra,
+    confirmar_compra,
+    listar_compras_usuario,
+    obtener_compra,
+    obtener_qr_base64,
+)
 
 compras_bp = Blueprint('compras', __name__)
 
@@ -12,6 +19,7 @@ MENSAJE_SIN_SESION_CANCELAR = 'Tenés que iniciar sesión para cancelar la compr
 MENSAJE_SIN_SESION_ABANDONAR = 'Tenés que iniciar sesión para abandonar la compra'
 MENSAJE_SIN_SESION_RESUMEN = 'Tenés que iniciar sesión para ver tu compra'
 MENSAJE_NO_PENDIENTE = 'Esta compra ya no está pendiente de pago'
+MENSAJE_SIN_SESION_ENTRADAS = 'Tenés que iniciar sesión para ver tus entradas'
 MENSAJE_NO_DISPONIBLE = 'Todavía no disponible'
 
 
@@ -62,6 +70,8 @@ def confirmar(id_compra):
     if motivo is not None:
         return render_template('compras/no_confirmada.html', motivo=motivo)
 
+    qr_imagen = obtener_qr_base64(id_compra, token)
+
     return render_template(
         'compras/confirmacion.html',
         factura=factura,
@@ -70,7 +80,33 @@ def confirmar(id_compra):
         mail_enviado=factura.get('mail_enviado'),
         compra={'id_compra': id_compra},
         horas_limite=HORAS_LIMITE_CANCELACION,
-        qr_imagen=None,
+        qr_imagen=qr_imagen,
+    )
+
+
+@compras_bp.route('/compras', methods=['GET'])
+def listar():
+    token = request.cookies.get(TOKEN_COOKIE_NOMBRE)
+
+    if token is None:
+        flash(MENSAJE_SIN_SESION_ENTRADAS, 'error')
+        return redirect(url_for('auth.login'))
+
+    compras, motivo = listar_compras_usuario(token)
+
+    if motivo is not None:
+        flash(motivo, 'error')
+
+    for compra in compras:
+        if compra.get('tiene_qr'):
+            compra['qr_imagen'] = obtener_qr_base64(compra['id_compra'], token)
+        else:
+            compra['qr_imagen'] = None
+
+    return render_template(
+        'compras/mis_entradas.html',
+        compras=compras,
+        horas_limite=HORAS_LIMITE_CANCELACION,
     )
 
 @compras_bp.route('/compras/<int:id_compra>/cancelar', methods=['GET'])
@@ -110,9 +146,3 @@ def abandonar(id_compra):
         flash(motivo, 'error')
 
     return redirect(url_for('cartelera.listar'))
-
-
-# Ruta provisoria
-@compras_bp.route('/compras', methods=['GET'])
-def listar():
-    return MENSAJE_NO_DISPONIBLE, 501

@@ -7,18 +7,33 @@ from ..services.compras import (
     cancelar_compra,
     confirmar_compra,
     crear_compra,
+    listar_compras,
+    listar_compras_para_validacion_admin,
     obtener_factura,
     obtener_qr_de_compra,
     validar_ingreso,
+    validar_ingreso_por_id,
 )
 
 compras_bp = Blueprint('compras', __name__)
+
+
+@compras_bp.route('/compras', methods=['GET'])
+def get_compras():
+    id_usuario = verificar_cliente()['id_usuario']
+    return jsonify(listar_compras(request.args, id_usuario))
 
 
 @compras_bp.route('/compras', methods=['POST'])
 def post_compra():
     id_usuario = verificar_cliente()['id_usuario']
     return jsonify(crear_compra(request.get_json(silent=True), id_usuario)), 201
+
+
+@compras_bp.route('/compras/admin', methods=['GET'])
+def get_compras_admin():
+    verificar_administrador()
+    return jsonify(listar_compras_para_validacion_admin())
 
 
 @compras_bp.route('/compras/<id_compra>', methods=['GET'])
@@ -62,3 +77,9 @@ def get_qr_compra(id_compra):
 def post_validar_compra():
     verificar_administrador()
     return jsonify(validar_ingreso(request.get_json(silent=True)))
+
+
+@compras_bp.route('/compras/<int:id_compra>/validar', methods=['POST'])
+def post_validar_compra_por_id(id_compra):
+    verificar_administrador()
+    return jsonify(validar_ingreso_por_id(id_compra))

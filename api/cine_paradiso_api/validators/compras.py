@@ -16,13 +16,11 @@ def validar_id_compra(id_compra) -> int:
     return validar_entero_positivo(id_compra, 'id_compra')
 
 
-def validar_cuerpo_validacion_qr(body) -> tuple[str, int]:
+def validar_cuerpo_validacion_qr(body) -> str:
     datos = validar_cuerpo_no_vacio(body)
-    rechazar_campos_desconocidos(datos, {'qr_token', 'id_funcion'})
+    rechazar_campos_desconocidos(datos, {'qr_token'})
 
-    qr_token = validar_string_no_vacio(datos.get('qr_token'), 'qr_token')
-    id_funcion = validar_entero_positivo(datos.get('id_funcion'), 'id_funcion')
-    return qr_token, id_funcion
+    return validar_string_no_vacio(datos.get('qr_token'), 'qr_token')
 
 
 def validar_cuerpo_compra(body) -> tuple[int, list[int]]:

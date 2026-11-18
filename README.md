@@ -212,7 +212,7 @@ Viewer" de VS Code.
 | PUT | `/servicios/{id_servicio}` | Modificar un servicio | Admin |
 | DELETE | `/servicios/{id_servicio}` | Baja lógica de un servicio | Admin |
 | POST | `/compras` | Reserva butacas y crea la compra `pendiente`. 409 si alguna ya se ocupó | Cliente |
-| GET | `/compras` | Compras del usuario logueado | Cliente |
+| GET | `/compras` | Listado paginado de compras del usuario logueado | Cliente |
 | GET | `/compras/{id_compra}` | Detalle de una compra | Cliente |
 | DELETE | `/compras/{id_compra}` | Cancelar una compra pendiente antes de pagar: la borra y libera las butacas | Cliente |
 | PUT | `/compras/{id_compra}/servicios` | Servicios y cantidades de una compra pendiente | Cliente |
@@ -262,8 +262,9 @@ duración positiva y un período de disponibilidad configurado que incluya el
 inicio de la función. La fecha/hora debe ser futura y usar el formato
 `YYYY-MM-DDTHH:MM:SS-03:00`; el precio debe ser no negativo y tener como máximo
 dos decimales. No se permiten superposiciones en una misma sala: se calcula el
-fin de cada función con la duración de su película, sin agregar tiempo de
-limpieza entre funciones. `GET /salas` requiere rol Admin y devuelve las salas
+fin de cada función con la duración de su película, y entre una función y la
+siguiente tiene que quedar un margen de 30 minutos (15 de limpieza,
+`MINUTOS_LIMPIEZA_SALA`, y 15 de apertura de sala, `MINUTOS_APERTURA_SALA`). `GET /salas` requiere rol Admin y devuelve las salas
 con su local y dirección para elegirlas al programar.
 
 `GET /funciones/{id_funcion}/butacas` devuelve el mapa de la sala para esa
@@ -286,6 +287,12 @@ sin repetir, de la sala de la función) y crea la compra `pendiente` con sus
 entradas en una sola transacción. La reserva dura 10 minutos. Antes de reservar
 se vencen los holds de esa función. Si otra compra ya tomó alguna butaca responde `409`, y si la
 función ya empezó, también `409`. Devuelve `201` con el detalle de la compra.
+
+`GET /compras` devuelve el listado paginado de las compras del cliente logueado,
+ordenadas de la más reciente a la más antigua, con los datos de la función,
+sus butacas, `subtotal_entradas`, `puede_cancelar` y `tiene_qr`. Si alguna
+compra está `pendiente`, primero vence los holds expirados de su función para
+informar el estado real.
 
 `GET /compras/{id_compra}` devuelve la compra del usuario logueado: `estado`,
 `fecha_hora`, `vence_en` (solo mientras está pendiente, para la cuenta regresiva),
