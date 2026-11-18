@@ -83,6 +83,20 @@ API y el web; la base queda corriendo (`docker compose stop` para frenarla).
 | Backoffice | http://localhost:5001/admin |
 | API | http://localhost:5000/cine_paradiso_api |
 
+### Con Docker (todo en contenedores)
+
+Requisitos: Docker y Docker Compose. No hace falta Python instalado.
+
+```bash
+cp .env.example .env              # completar API_SECRET_KEY
+docker compose up --build         # -d para dejarlo en segundo plano
+```
+
+Levanta tres contenedores: la base (`db`), la API (`api`) y el web (`web`). La
+API espera a que MySQL esté listo antes de arrancar. Las URL son las mismas de
+la tabla de arriba. Para frenar todo: `docker compose down`. Si cambia el
+código, `docker compose up --build` vuelve a construir solo lo que cambió.
+
 ### Paso a paso (o en Windows)
 
 ```bash
@@ -134,11 +148,12 @@ docker compose down -v && docker compose up -d --wait db
 ```
 cine-paradiso/
 ├── init.sh                      instala y levanta todo
-├── docker-compose.yml           MySQL con el esquema y los datos iniciales
+├── docker-compose.yml           MySQL, la API y el web en contenedores
 ├── .env.example                 variables de entorno (copiar como .env)
 ├── docs/                        mockups e informe
 ├── api/
 │   ├── app.py                   arranque de la API, registra los blueprints
+│   ├── Dockerfile               imagen de la API
 │   ├── requirements.txt
 │   ├── db/
 │   │   ├── init.sql             script de creación: base y tablas
@@ -154,6 +169,7 @@ cine-paradiso/
 │       └── repositories/        SQL; __init__.py tiene la conexión y las primitivas
 └── web/
     ├── app.py                   arranque del web, registra los blueprints
+    ├── Dockerfile               imagen del web
     ├── requirements.txt
     ├── templates/               templates Jinja (base.html, páginas por recurso)
     │   └── components/          piezas reutilizables con {% include %}
