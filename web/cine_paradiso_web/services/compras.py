@@ -1,6 +1,4 @@
-import base64
-
-import requests
+import base64, requests
 
 from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE
 
