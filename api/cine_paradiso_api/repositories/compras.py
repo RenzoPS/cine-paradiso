@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import bindparam, text
 
-from ..constants import ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA, ESTADO_VENCIDA
+from ..constants import ESTADO_CANCELADA, ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA, ESTADO_VENCIDA
 from . import ejecutar_consulta, ejecutar_escalar, fila_a_dict, transaccion
 
 def obtener_compra_por_id(id_compra: int) -> dict | None:
@@ -53,6 +53,63 @@ def listar_compras_de_usuario(id_usuario: int, limit: int, offset: int) -> tuple
         {'id_usuario': id_usuario, 'limit': limit, 'offset': offset},
     )
     return compras, total
+
+
+def obtener_compra_para_validar(id_compra: int) -> dict | None:
+    filas = ejecutar_consulta(
+        """
+        SELECT
+            c.id_compra,
+            c.fk_id_usuario,
+            c.fk_id_funcion,
+            c.estado,
+            c.fecha_hora,
+            p.titulo AS pelicula,
+            p.duracion_min,
+            s.nombre AS sala,
+            l.nombre AS local,
+            f.fecha_hora AS fecha_hora_funcion
+        FROM compras c
+        JOIN funciones f ON f.id_funcion = c.fk_id_funcion
+        JOIN peliculas p ON p.id_pelicula = f.fk_id_pelicula
+        JOIN salas s ON s.id_sala = f.fk_id_sala
+        JOIN locales l ON l.id_local = s.fk_id_local
+        WHERE c.id_compra = :id_compra
+        """,
+        {'id_compra': id_compra},
+    )
+    return filas[0] if filas else None
+
+
+def listar_compras_con_qr_admin() -> list[dict]:
+    sql = """
+        SELECT
+            c.id_compra,
+            c.estado,
+            c.fecha_hora AS fecha_compra,
+            p.titulo AS pelicula,
+            s.nombre AS sala,
+            l.nombre AS local,
+            f.fecha_hora AS fecha_hora_funcion,
+            u.nombre AS cliente_nombre,
+            u.email AS cliente_email
+        FROM compras c
+        JOIN funciones f ON f.id_funcion = c.fk_id_funcion
+        JOIN peliculas p ON p.id_pelicula = f.fk_id_pelicula
+        JOIN salas s ON s.id_sala = f.fk_id_sala
+        JOIN locales l ON l.id_local = s.fk_id_local
+        JOIN usuarios u ON u.id_usuario = c.fk_id_usuario
+        WHERE c.estado IN (:estado_pagada, :estado_usada, :estado_cancelada)
+        ORDER BY f.fecha_hora DESC, c.id_compra DESC
+    """
+    return ejecutar_consulta(
+        sql,
+        {
+            'estado_pagada': ESTADO_PAGADA,
+            'estado_usada': ESTADO_USADA,
+            'estado_cancelada': ESTADO_CANCELADA,
+        },
+    )
 
 
 def obtener_entradas_de_compra(id_compra: int) -> list[dict]:

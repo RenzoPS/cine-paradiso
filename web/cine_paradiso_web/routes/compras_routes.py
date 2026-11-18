@@ -26,6 +26,8 @@ def confirmar(id_compra):
     if motivo is not None:
         return render_template('compras/no_confirmada.html', motivo=motivo)
 
+    qr_imagen = obtener_qr_base64(id_compra, token)
+
     return render_template(
         'compras/confirmacion.html',
         factura=factura,
@@ -34,7 +36,7 @@ def confirmar(id_compra):
         mail_enviado=factura.get('mail_enviado'),
         compra={'id_compra': id_compra},
         horas_limite=HORAS_LIMITE_CANCELACION,
-        qr_imagen=obtener_qr_base64(id_compra, token),
+        qr_imagen=qr_imagen,
     )
 
 

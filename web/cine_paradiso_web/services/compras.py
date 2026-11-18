@@ -3,6 +3,7 @@ import base64
 import requests
 
 from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE
+from cine_paradiso_web.services.api_service import llamar_api
 
 MOTIVO_POR_DEFECTO = 'No pudimos confirmar tu compra. Intentá de nuevo en unos minutos'
 MOTIVO_LISTADO_POR_DEFECTO = 'No pudimos cargar tus entradas. Intentá de nuevo en unos minutos'
@@ -59,6 +60,22 @@ def obtener_qr_base64(id_compra, token):
     if respuesta.ok:
         return base64.b64encode(respuesta.content).decode('ascii')
     return None
+
+
+def validar_ingreso_qr(qr_token):
+    return llamar_api(
+        'POST',
+        'compras/validar',
+        json={'qr_token': qr_token},
+    )
+
+
+def listar_compras_validacion_admin():
+    return llamar_api('GET', 'compras/admin')
+
+
+def validar_ingreso_por_id_compra(id_compra):
+    return llamar_api('POST', f'compras/{id_compra}/validar')
 
 
 def _motivo_del_error(respuesta, por_defecto=MOTIVO_POR_DEFECTO):

@@ -262,8 +262,9 @@ duración positiva y un período de disponibilidad configurado que incluya el
 inicio de la función. La fecha/hora debe ser futura y usar el formato
 `YYYY-MM-DDTHH:MM:SS-03:00`; el precio debe ser no negativo y tener como máximo
 dos decimales. No se permiten superposiciones en una misma sala: se calcula el
-fin de cada función con la duración de su película, sin agregar tiempo de
-limpieza entre funciones. `GET /salas` requiere rol Admin y devuelve las salas
+fin de cada función con la duración de su película, y entre una función y la
+siguiente tiene que quedar un margen de 30 minutos (15 de limpieza,
+`MINUTOS_LIMPIEZA_SALA`, y 15 de apertura de sala, `MINUTOS_APERTURA_SALA`). `GET /salas` requiere rol Admin y devuelve las salas
 con su local y dirección para elegirlas al programar.
 
 `GET /funciones/{id_funcion}/butacas` devuelve el mapa de la sala para esa
