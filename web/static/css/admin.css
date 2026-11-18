@@ -243,6 +243,55 @@ a.admin-card:focus-visible {
     margin-top: 1.5rem;
 }
 
+.admin-qr-resultado {
+    margin-top: 1.5rem;
+    padding: 2rem 1.5rem;
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.admin-qr-resultado-valido {
+    border: 2px solid var(--color-success);
+    background: var(--color-success-bg);
+    color: var(--color-text-main);
+}
+
+.admin-qr-resultado-rechazado {
+    border: 2px solid var(--color-error);
+    background: var(--color-error-bg);
+    color: var(--color-text-main);
+}
+
+.admin-qr-icono {
+    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.admin-qr-resultado-valido .admin-qr-icono {
+    color: var(--color-success);
+}
+
+.admin-qr-resultado-rechazado .admin-qr-icono {
+    color: var(--color-error);
+}
+
+.admin-qr-resultado h2 {
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.admin-qr-detalle {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.admin-qr-meta {
+    margin-top: 0.35rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
 @media (max-width: 600px) {
     .admin-page-header-row,
     .admin-panel-header,
@@ -259,3 +308,4 @@ a.admin-card:focus-visible {
         width: 100%;
     }
 }
+

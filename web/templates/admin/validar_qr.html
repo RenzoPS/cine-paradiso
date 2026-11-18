@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Validar ingreso - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <span>Validar ingreso</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Acceso a sala</p>
+        <h1>Validar ingreso</h1>
+        <p>Seleccioná la función en curso para verificar la entrada escaneada en la puerta.</p>
+    </header>
+
+    <section class="admin-panel">
+        <form
+            class="admin-edit-form"
+            method="post"
+            action="{{ url_for('admin.validar_qr', qr_token=qr_token) }}"
+        >
+            <label>
+                Función
+                <select name="id_funcion" required>
+                    <option value="">Seleccioná una función</option>
+                    {% for funcion in funciones %}
+                    <option
+                        value="{{ funcion.id_funcion }}"
+                        {% if funcion.id_funcion == id_funcion_seleccionada %}selected{% endif %}
+                    >
+                        {{ funcion.pelicula }} · {{ funcion.sala }} · {{ funcion.local }} · {{ funcion.fecha_hora | fecha_legible }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit" {% if not funciones %}disabled{% endif %}>
+                    Validar ingreso
+                </button>
+            </div>
+        </form>
+
+        {% if not funciones %}
+        <p class="admin-empty-state">No hay funciones programadas disponibles para validar.</p>
+        {% endif %}
+
+        {% if resultado_valido %}
+        <article class="admin-qr-resultado admin-qr-resultado-valido" role="status">
+            <div class="admin-qr-icono" aria-hidden="true">✔</div>
+            <h2>Ingreso válido</h2>
+            <p class="admin-qr-detalle">
+                {{ resultado_valido.butacas | length }} {{ 'entrada' if resultado_valido.butacas | length == 1 else 'entradas' }}
+                · Butacas {{ resultado_valido.butacas | join(', ') }}
+            </p>
+            <p class="admin-qr-meta">Compra #{{ resultado_valido.id_compra }}</p>
+        </article>
+        {% elif motivo_rechazo %}
+        <article class="admin-qr-resultado admin-qr-resultado-rechazado" role="alert">
+            <div class="admin-qr-icono" aria-hidden="true">✖</div>
+            <h2>QR rechazado</h2>
+            <p class="admin-qr-detalle">{{ motivo_rechazo }}</p>
+        </article>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

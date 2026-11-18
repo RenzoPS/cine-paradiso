@@ -4,6 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from cine_paradiso_web.seguridad import verificar_administrador
 from cine_paradiso_web.services.api_service import ApiError
+from cine_paradiso_web.services.compras import validar_ingreso_qr
 from cine_paradiso_web.services.peliculas_service import (
     actualizar_pelicula as guardar_pelicula,
     buscar_peliculas_tmdb as consultar_tmdb,
@@ -364,3 +365,45 @@ def editar_funcion(id_funcion):
         salas=salas,
         id_local=id_local,
     )
+
+
+@admin_bp.route('/validar/<qr_token>', methods=['GET', 'POST'])
+def validar_qr(qr_token):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    try:
+        funciones_disponibles = listar_todas_funciones()['funciones']
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        funciones_disponibles = []
+
+    id_funcion_seleccionada = None
+    resultado_valido = None
+    motivo_rechazo = None
+
+    if request.method == 'POST':
+        valor_funcion = request.form.get('id_funcion', '').strip()
+        try:
+            id_funcion = int(valor_funcion)
+            if id_funcion < 1:
+                raise ValueError
+        except ValueError:
+            motivo_rechazo = 'Tenés que seleccionar una función válida.'
+        else:
+            id_funcion_seleccionada = id_funcion
+            try:
+                resultado_valido = validar_ingreso_qr(qr_token, id_funcion)
+            except ApiError as error:
+                motivo_rechazo = error.mensaje
+
+    return render_template(
+        'admin/validar_qr.html',
+        qr_token=qr_token,
+        funciones=funciones_disponibles,
+        id_funcion_seleccionada=id_funcion_seleccionada,
+        resultado_valido=resultado_valido,
+        motivo_rechazo=motivo_rechazo,
+    )
+
