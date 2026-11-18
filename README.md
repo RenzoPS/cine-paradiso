@@ -240,10 +240,7 @@ Viewer" de VS Code.
 | GET | `/compras/{id_compra}/qr` | Imagen PNG del QR | Cliente |
 | POST | `/compras/{id_compra}/cancelar` | Cancela si está dentro del plazo y libera las butacas | Cliente |
 | POST | `/compras/validar` | Valida el QR en el ingreso a la sala y marca la compra como `usada` | Admin |
-| GET | `/estadisticas/ocupacion?por=funcion\|pelicula` | Ocupación por función o por película | Admin |
-| GET | `/estadisticas/ventas-por-genero` | Ventas por género | Admin |
-| GET | `/estadisticas/franjas-horarias` | Franjas horarias más vendidas | Admin |
-| GET | `/estadisticas/cancelaciones` | Cancelaciones por período y por película | Admin |
+| GET | `/dashboard` | Indicadores del backoffice: ocupación por función y por película, ventas por género, franjas horarias y cancelaciones | Admin |
 
 Todos los endpoints tienen seguridad: los públicos piden la API key del web,
 y los de cliente y admin, además, el token del login. Sin token o con el token
@@ -324,6 +321,14 @@ usuario, responde `404`.
 borra la compra, sus entradas y sus servicios, así las butacas quedan libres y
 no cuenta como cancelación en los dashboards. Responde `204`, o `409` si la
 compra no está pendiente.
+
+`GET /dashboard` devuelve los cuatro indicadores de la consigna en una sola
+respuesta, sin filtros. Una venta es una entrada de una compra pagada o usada:
+las pendientes son reservas sin pagar y no cuentan. La ocupación es entradas
+vendidas sobre butacas de la sala (por película, sumando sus funciones); las
+ventas por género y las franjas horarias (hora de inicio de la función) solo
+listan los grupos con ventas, de mayor a menor; las cancelaciones son las
+compras canceladas, por película y en total.
 
 Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
 que no se guarda en la base: se calcula a partir del período en cartel. Una

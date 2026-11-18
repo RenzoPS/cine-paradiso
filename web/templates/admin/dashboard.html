@@ -1,118 +1,191 @@
 {% extends 'base.html' %}
 
-{% block title %}Panel de Administración - Cine Paradiso{% endblock %}
+{% block title %}Estadísticas - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% macro barra(porcentaje) %}
+<div class="admin-barra" aria-hidden="true">
+    <span class="admin-barra-relleno" style="width: {{ porcentaje }}%"></span>
+</div>
+{% endmacro %}
+
+{% macro tabla_entradas(filas, columna, titulo_columna) %}
+<div class="admin-table-scroll">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th scope="col">{{ titulo_columna }}</th>
+                <th scope="col">Entradas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in filas %}
+            <tr>
+                <td>{{ fila[columna] }}</td>
+                <td>
+                    {{ fila.entradas }}
+                    {{ barra(fila.entradas * 100 / filas[0].entradas) }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td class="admin-empty-cell" colspan="2">Todavía no hay entradas vendidas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
 
 {% block content %}
-<section class="admin-dashboard-container">
-    <header class="cartelera-title-group">
-        <h1 class="cartelera-title">
-            Panel de <span class="brand-accent">Administración</span>
-        </h1>
-        <p class="cartelera-subtitle">
-            Bienvenido, {{ session.get('usuario', {}).get('nombre', 'Administrador') }}. Supervisión general y gestión de salas.
-        </p>
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <span>Estadísticas</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Informes</p>
+        <h1>Estadísticas</h1>
+        <p>Las ventas son las entradas de compras pagadas o usadas. Las reservas pendientes no cuentan.</p>
     </header>
 
-    {# Métricas Rápidas / Resumen Operativo #}
-    <div class="movies-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
-        <article class="card text-center" style="padding: 1.25rem;">
-            <span class="price-label">Locales Activos</span>
-            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">3</p>
-            <span class="functions-help" style="font-size: 0.75rem;">Centro · Belgrano · Recoleta</span>
-        </article>
+    {% if dashboard %}
+    <div class="admin-dashboard">
+        <section class="admin-panel" aria-labelledby="ocupacion-funcion-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="ocupacion-funcion-heading">Ocupación por función</h2>
+                    <p>Entradas vendidas sobre la capacidad de la sala.</p>
+                </div>
+                <span class="admin-status">{{ dashboard.ocupacion_por_funcion | length }} funciones</span>
+            </div>
 
-        <article class="card text-center" style="padding: 1.25rem;">
-            <span class="price-label">Funciones Hoy</span>
-            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">12</p>
-            <span class="functions-help" style="font-size: 0.75rem;">Todas las salas operativas</span>
-        </article>
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Sala / local</th>
+                            <th scope="col">Fecha y hora</th>
+                            <th scope="col">Vendidas</th>
+                            <th scope="col">Ocupación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for funcion in dashboard.ocupacion_por_funcion %}
+                        <tr>
+                            <td>{{ funcion.pelicula }}</td>
+                            <td>{{ funcion.sala }} · {{ funcion.local }}</td>
+                            <td>{{ funcion.fecha_hora | fecha_legible }}</td>
+                            <td>{{ funcion.vendidas }} / {{ funcion.capacidad }}</td>
+                            <td>
+                                {{ funcion.porcentaje }}%
+                                {{ barra(funcion.porcentaje) }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="5">No hay funciones programadas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-        <article class="card text-center" style="padding: 1.25rem;">
-            <span class="price-label">Ocupación Promedio</span>
-            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">78%</p>
-            <span class="functions-help" style="font-size: 0.75rem;">Últimas 24 horas</span>
-        </article>
+        <section class="admin-panel" aria-labelledby="ocupacion-pelicula-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="ocupacion-pelicula-heading">Ocupación por película</h2>
+                    <p>Suma de todas las funciones de cada película.</p>
+                </div>
+            </div>
 
-        <article class="card text-center" style="padding: 1.25rem;">
-            <span class="price-label">Servicios Habilitados</span>
-            <p class="price-amount" style="font-size: 1.75rem; margin-top: 0.25rem;">Activos</p>
-            <span class="functions-help" style="font-size: 0.75rem;">Candy bar y combos</span>
-        </article>
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Funciones</th>
+                            <th scope="col">Vendidas</th>
+                            <th scope="col">Ocupación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pelicula in dashboard.ocupacion_por_pelicula %}
+                        <tr>
+                            <td>{{ pelicula.pelicula }}</td>
+                            <td>{{ pelicula.funciones }}</td>
+                            <td>{{ pelicula.vendidas }} / {{ pelicula.capacidad }}</td>
+                            <td>
+                                {{ pelicula.porcentaje }}%
+                                {{ barra(pelicula.porcentaje) }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="4">No hay películas con funciones.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="admin-dashboard-grid">
+            <section class="admin-panel" aria-labelledby="generos-heading">
+                <div class="admin-panel-header">
+                    <h2 id="generos-heading">Ventas por género</h2>
+                </div>
+                {{ tabla_entradas(dashboard.ventas_por_genero, 'genero', 'Género') }}
+            </section>
+
+            <section class="admin-panel" aria-labelledby="franjas-heading">
+                <div class="admin-panel-header">
+                    <h2 id="franjas-heading">Franjas horarias más vendidas</h2>
+                </div>
+                {{ tabla_entradas(dashboard.franjas_horarias, 'hora', 'Hora de inicio') }}
+            </section>
+        </div>
+
+        <section class="admin-panel" aria-labelledby="cancelaciones-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="cancelaciones-heading">Cancelaciones</h2>
+                    <p>Compras pagadas que se cancelaron dentro del plazo.</p>
+                </div>
+                <span class="admin-status">Total: {{ dashboard.cancelaciones.total }}</span>
+            </div>
+
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Cancelaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pelicula in dashboard.cancelaciones.por_pelicula %}
+                        <tr>
+                            <td>{{ pelicula.pelicula }}</td>
+                            <td>{{ pelicula.cancelaciones }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="2">No hubo cancelaciones.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
-
-    {# Módulos de Gestión del Backoffice #}
-    <h2 class="section-subtitle" style="margin-bottom: 1rem;">Módulos de Gestión</h2>
-    <div class="movies-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
-        
-        {# Gestión de Películas #}
-        <article class="card movie-card" style="padding: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-                    <line x1="7" y1="2" x2="7" y2="22"></line>
-                    <line x1="17" y1="2" x2="17" y2="22"></line>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <line x1="2" y1="7" x2="7" y2="7"></line>
-                    <line x1="2" y1="17" x2="7" y2="17"></line>
-                    <line x1="17" y1="17" x2="22" y2="17"></line>
-                    <line x1="17" y1="7" x2="22" y2="7"></line>
-                </svg>
-            </div>
-            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Películas</h3>
-            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
-                Búsqueda e importación directa desde TMDB, asignación de géneros, períodos en cartelera y baja lógica.
-            </p>
-            <a href="#" class="btn btn-sm btn-outline">Gestionar Catálogo</a>
-        </article>
-
-        {# Programación de Funciones #}
-        <article class="card movie-card" style="padding: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-            </div>
-            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Funciones</h3>
-            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
-                Programación de horarios por sala y sucursal, definición de precios por función y grilla de proyección.
-            </p>
-            <a href="{{ url_for('admin.funciones') }}" class="btn btn-sm btn-outline">Programar Horarios</a>
-        </article>
-
-        {# Confitería y Servicios #}
-        <article class="card movie-card" style="padding: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-                    <line x1="6" y1="1" x2="6" y2="4"></line>
-                    <line x1="10" y1="1" x2="10" y2="4"></line>
-                    <line x1="14" y1="1" x2="14" y2="4"></line>
-                </svg>
-            </div>
-            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Candy Bar & Extras</h3>
-            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
-                Administración de combos de pochoclos, bebidas y adicionales disponibles en el flujo de compra.
-            </p>
-            <a href="#" class="btn btn-sm btn-outline">Configurar Servicios</a>
-        </article>
-
-        {# Reportes y Estadísticas #}
-        <article class="card movie-card" style="padding: 1.5rem;">
-            <div style="margin-bottom: 0.75rem; color: var(--color-accent);">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-            </div>
-            <h3 class="movie-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Métricas</h3>
-            <p class="functions-help" style="margin-bottom: 1.25rem; flex: 1;">
-                Reportes comerciales: ocupación por función, ventas por género, franjas horarias y cancelaciones.
-            </p>
-            <a href="#" class="btn btn-sm btn-outline">Ver Reportes</a>
-        </article>
-    </div>
+    {% endif %}
 </section>
 {% endblock %}

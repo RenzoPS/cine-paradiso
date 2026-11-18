@@ -79,6 +79,9 @@ ESTADO_VENCIDA   = 'vencida'
 ESTADO_USADA     = 'usada'
 ESTADO_CANCELADA = 'cancelada'
 
+# Nombre que muestra el dashboard para las peliculas que TMDB no informo con genero.
+GENERO_SIN_DEFINIR = 'Sin genero'
+
 # Minutos que una compra pendiente retiene sus butacas antes de vencer.
 MINUTOS_RESERVA = 10
 MAX_BUTACAS_POR_COMPRA = 4

@@ -9,6 +9,7 @@ from cine_paradiso_web.services.compras import (
     validar_ingreso_por_id_compra,
     validar_ingreso_qr,
 )
+from cine_paradiso_web.services.dashboard_service import obtener_dashboard
 from cine_paradiso_web.services.peliculas_service import (
     actualizar_pelicula as guardar_pelicula,
     buscar_peliculas_tmdb as consultar_tmdb,
@@ -128,7 +129,13 @@ def dashboard():
     if redireccion:
         return redireccion
 
-    return render_template('admin/dashboard.html')
+    try:
+        dashboard = obtener_dashboard()
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+        dashboard = None
+
+    return render_template('admin/dashboard.html', dashboard=dashboard)
 
 
 @admin_bp.route('/peliculas', methods=['GET'])

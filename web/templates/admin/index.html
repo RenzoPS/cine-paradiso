@@ -40,12 +40,12 @@
             <span class="admin-card-action">Validar QR</span>
         </a>
 
-        <article class="admin-card admin-card-disabled" aria-disabled="true">
+        <a class="admin-card" href="{{ url_for('admin.dashboard') }}">
             <span class="admin-card-label">Informes</span>
             <h2>Estadísticas</h2>
-            <p>Los indicadores administrativos estarán disponibles en una próxima etapa.</p>
-            <span class="admin-card-action">Próximamente</span>
-        </article>
+            <p>Ocupación, ventas por género, franjas horarias y cancelaciones.</p>
+            <span class="admin-card-action">Ver estadísticas</span>
+        </a>
     </div>
 </section>
 {% endblock %}

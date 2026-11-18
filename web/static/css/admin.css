@@ -337,6 +337,37 @@ a.admin-card:focus-visible {
     color: var(--color-error);
 }
 
+.admin-dashboard {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.admin-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+.admin-dashboard > *,
+.admin-dashboard-grid > * {
+    min-width: 0;
+}
+
+.admin-barra {
+    height: 0.4rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: var(--color-bg-surface-elevated);
+    overflow: hidden;
+}
+
+.admin-barra-relleno {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-accent);
+}
+
 @media (max-width: 600px) {
     .admin-page-header-row,
     .admin-panel-header,
@@ -345,7 +376,8 @@ a.admin-card:focus-visible {
         flex-direction: column;
     }
 
-    .admin-date-grid {
+    .admin-date-grid,
+    .admin-dashboard-grid {
         grid-template-columns: 1fr;
     }
 
