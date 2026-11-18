@@ -25,6 +25,7 @@ from ..constants import (
     ESTADO_USADA,
     ESTADO_VENCIDA,
     HORAS_LIMITE_CANCELACION,
+    MINUTOS_APERTURA_SALA,
     MINUTOS_RESERVA,
     TZ_ARG,
     WEB_URL,
@@ -293,16 +294,7 @@ def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
     return generar_qr_de_compra(id_validado)
 
 
-def validar_ingreso(body) -> dict:
-    """
-    Valida el QR en la puerta de la sala: tiene que ser de hoy, y no estar usado ni cancelado.
-    """
-    qr_token = validar_cuerpo_validacion_qr(body)
-    compra = db_compras.obtener_compra_por_id(leer_token_qr(qr_token))
-
-    if not compra :
-        raise error_qr_invalido()
-
+def _ejecutar_validacion_compra(compra: dict) -> dict:
     if compra['estado'] == ESTADO_USADA:
         raise _error_qr_utilizado()
 
@@ -310,9 +302,13 @@ def validar_ingreso(body) -> dict:
         raise _rechazar_ingreso(ERROR_CODE_QR_CANCELADO, 'QR cancelado', 'La compra fue cancelada')
 
     if compra['estado'] != ESTADO_PAGADA:
-        raise _rechazar_ingreso(ERROR_CODE_QR_NO_PAGADO, 'Compra sin pagar', f"Estado de la compra: '{compra['estado']}'")
+        raise _rechazar_ingreso(
+            ERROR_CODE_QR_NO_PAGADO,
+            'Compra sin pagar',
+            f"Estado de la compra: '{compra['estado']}'",
+        )
 
-    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(compra['fk_id_funcion'])
+    fecha_hora_funcion = compra['fecha_hora_funcion']
     ahora = _ahora()
 
     if fecha_hora_funcion.date() != ahora.date():
@@ -320,6 +316,24 @@ def validar_ingreso(body) -> dict:
             ERROR_CODE_QR_OTRO_DIA,
             'QR de otro dia',
             f'La funcion es el {formatear_fecha_hora(fecha_hora_funcion)}',
+        )
+
+    duracion_min = compra.get('duracion_min') or 0
+    apertura_sala = fecha_hora_funcion - timedelta(minutes=MINUTOS_APERTURA_SALA)
+    fin_funcion = fecha_hora_funcion + timedelta(minutes=duracion_min)
+
+    if ahora < apertura_sala:
+        raise _rechazar_ingreso(
+            ERROR_CODE_QR_OTRO_DIA,
+            'Sala cerrada',
+            f"La sala abre a las {apertura_sala.strftime('%H:%M')}",
+        )
+
+    if ahora > fin_funcion:
+        raise _rechazar_ingreso(
+            ERROR_CODE_QR_OTRO_DIA,
+            'Funcion finalizada',
+            'La función ya terminó',
         )
 
     if not db_compras.marcar_compra_usada(compra['id_compra']):
@@ -331,7 +345,63 @@ def validar_ingreso(body) -> dict:
         'estado': ESTADO_USADA,
         'fecha_validacion': formatear_fecha_hora(ahora),
         'butacas': [f"{entrada['fila']}{entrada['numero']}" for entrada in entradas],
+        'pelicula': compra['pelicula'],
+        'sala': compra['sala'],
+        'local': compra['local'],
+        'fecha_hora_funcion': formatear_fecha_hora(fecha_hora_funcion),
     }
+
+
+def validar_ingreso(body) -> dict:
+    """
+    Valida el QR en la puerta de la sala a partir del token firmado.
+    """
+    qr_token = validar_cuerpo_validacion_qr(body)
+    compra = db_compras.obtener_compra_para_validar(leer_token_qr(qr_token))
+
+    if not compra:
+        raise error_qr_invalido()
+
+    return _ejecutar_validacion_compra(compra)
+
+
+def validar_ingreso_por_id(id_compra) -> dict:
+    """
+    Valida el ingreso de una compra por su ID desde el backoffice.
+    """
+    id_validado = validar_id_compra(id_compra)
+    compra = db_compras.obtener_compra_para_validar(id_validado)
+
+    if not compra:
+        raise _error_compra_no_encontrada(id_validado)
+
+    return _ejecutar_validacion_compra(compra)
+
+
+def listar_compras_para_validacion_admin() -> dict:
+    compras = db_compras.listar_compras_con_qr_admin()
+    items = []
+
+    for compra in compras:
+        entradas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
+        items.append({
+            'id_compra': compra['id_compra'],
+            'estado': compra['estado'],
+            'fecha_validacion': (
+                formatear_fecha_hora(compra['fecha_validacion'])
+                if compra['estado'] == ESTADO_USADA
+                else None
+            ),
+            'pelicula': compra['pelicula'],
+            'sala': compra['sala'],
+            'local': compra['local'],
+            'fecha_hora_funcion': formatear_fecha_hora(compra['fecha_hora_funcion']),
+            'cliente_nombre': compra['cliente_nombre'],
+            'cliente_email': compra['cliente_email'],
+            'butacas': [f"{entrada['fila']}{entrada['numero']}" for entrada in entradas],
+        })
+
+    return {'compras': items}
 
 
 def crear_compra(body, id_usuario: int) -> dict:
