@@ -15,8 +15,9 @@ from ..constants import (
     ERROR_CODE_COMPRA_SIN_FACTURA,
     ERROR_CODE_COMPRA_VENCIDA,
     ERROR_CODE_QR_CANCELADO,
+    ERROR_CODE_QR_FUNCION_TERMINADA,
     ERROR_CODE_QR_NO_PAGADO,
-    ERROR_CODE_QR_OTRO_DIA,
+    ERROR_CODE_QR_SALA_CERRADA,
     ERROR_CODE_QR_SIN_EMITIR,
     ERROR_CODE_QR_UTILIZADO,
     ESTADO_CANCELADA,
@@ -311,27 +312,20 @@ def _ejecutar_validacion_compra(compra: dict) -> dict:
     fecha_hora_funcion = compra['fecha_hora_funcion']
     ahora = _ahora()
 
-    if fecha_hora_funcion.date() != ahora.date():
-        raise _rechazar_ingreso(
-            ERROR_CODE_QR_OTRO_DIA,
-            'QR de otro dia',
-            f'La funcion es el {formatear_fecha_hora(fecha_hora_funcion)}',
-        )
-
     duracion_min = compra.get('duracion_min') or 0
     apertura_sala = fecha_hora_funcion - timedelta(minutes=MINUTOS_APERTURA_SALA)
     fin_funcion = fecha_hora_funcion + timedelta(minutes=duracion_min)
 
     if ahora < apertura_sala:
         raise _rechazar_ingreso(
-            ERROR_CODE_QR_OTRO_DIA,
+            ERROR_CODE_QR_SALA_CERRADA,
             'Sala cerrada',
             f"La sala abre a las {apertura_sala.strftime('%H:%M')}",
         )
 
     if ahora > fin_funcion:
         raise _rechazar_ingreso(
-            ERROR_CODE_QR_OTRO_DIA,
+            ERROR_CODE_QR_FUNCION_TERMINADA,
             'Funcion finalizada',
             'La función ya terminó',
         )
@@ -387,11 +381,7 @@ def listar_compras_para_validacion_admin() -> dict:
         items.append({
             'id_compra': compra['id_compra'],
             'estado': compra['estado'],
-            'fecha_validacion': (
-                formatear_fecha_hora(compra['fecha_validacion'])
-                if compra['estado'] == ESTADO_USADA
-                else None
-            ),
+            'fecha_compra': formatear_fecha_hora(compra['fecha_compra']),
             'pelicula': compra['pelicula'],
             'sala': compra['sala'],
             'local': compra['local'],

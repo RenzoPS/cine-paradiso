@@ -48,7 +48,7 @@ def listar_compras_con_qr_admin() -> list[dict]:
         SELECT
             c.id_compra,
             c.estado,
-            c.fecha_hora AS fecha_validacion,
+            c.fecha_hora AS fecha_compra,
             p.titulo AS pelicula,
             s.nombre AS sala,
             l.nombre AS local,
