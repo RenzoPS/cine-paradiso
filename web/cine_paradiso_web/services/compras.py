@@ -1,81 +1,45 @@
-import requests
+from cine_paradiso_web.services.api_service import ApiError, llamar_api
 
-from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE
 
-MOTIVO_POR_DEFECTO = 'No pudimos confirmar tu compra. Intentá de nuevo en unos minutos'
-
-def confirmar_compra(id_compra, token):
+def confirmar_compra(id_compra):
     """
-    Pide a la API que confirme la compra. Devuelve (factura, None) si salió bien o (None, motivo) si falló, con un texto para mostrarle al usuario.
+    Pide a la API que confirme la compra.
     """
     try:
-        respuesta = requests.post(
-            f'{API_URL}/compras/{id_compra}/confirmar',
-            cookies={TOKEN_COOKIE_NOMBRE: token},
-            timeout=API_TIMEOUT_SEGUNDOS,
-        )
-    except requests.RequestException:
-        return None, MOTIVO_POR_DEFECTO
+        factura = llamar_api('POST', f'/compras/{id_compra}/confirmar')
+    except ApiError as error:
+        return None, error.mensaje
+    return factura, None
 
-    if respuesta.ok:
-        return respuesta.json(), None
-    return None, _motivo_del_error(respuesta)
 
-def cancelar_compra(id_compra, token):
+def cancelar_compra(id_compra):
     """
-    Pide a la API que cancele la compra. Devuelve (True, None) si salió bien o (False, motivo) si falló, con un texto para mostrarle al usuario.
+    Pide a la API que cancele la compra.
     """
     try:
-        respuesta = requests.post(
-            f'{API_URL}/compras/{id_compra}/cancelar',
-            cookies={TOKEN_COOKIE_NOMBRE: token},
-            timeout=API_TIMEOUT_SEGUNDOS,
-        )
-    except requests.RequestException:
-        return False, 'No pudimos cancelar tu compra. Intentá de nuevo en unos minutos'
-
-    if respuesta.ok:
-        return True, None
-    return False, _motivo_del_error(respuesta)
+        llamar_api('POST', f'/compras/{id_compra}/cancelar')
+    except ApiError as error:
+        return False, error.mensaje
+    return True, None
 
 
-def abandonar_compra(id_compra, token):
+def abandonar_compra(id_compra):
     """
-    Pide a la API que borre una compra que todavía no se pagó. Devuelve (True, None) si salió bien o (False, motivo) si falló.
+    Pide a la API que borre una compra que todavía no se pagó.
     """
     try:
-        respuesta = requests.delete(
-            f'{API_URL}/compras/{id_compra}',
-            cookies={TOKEN_COOKIE_NOMBRE: token},
-            timeout=API_TIMEOUT_SEGUNDOS,
-        )
-    except requests.RequestException:
-        return False, 'No pudimos abandonar tu compra. Intentá de nuevo en unos minutos'
+        llamar_api('DELETE', f'/compras/{id_compra}')
+    except ApiError as error:
+        return False, error.mensaje
+    return True, None
 
-    if respuesta.ok:
-        return True, None
-    return False, _motivo_del_error(respuesta)
 
-def obtener_compra(id_compra, token):
+def obtener_compra(id_compra):
     """
-    Pide a la API los datos de la compra. Devuelve (compra, None) si salió bien o (None, motivo) si falló, con un texto para mostrarle al usuario.
+    Pide a la API los datos de la compra.
     """
     try:
-        respuesta = requests.get(
-            f'{API_URL}/compras/{id_compra}',
-            cookies={TOKEN_COOKIE_NOMBRE: token},
-            timeout=API_TIMEOUT_SEGUNDOS,
-        )
-    except requests.RequestException:
-        return None, 'No pudimos mostrar tu compra. Intentá de nuevo en unos minutos'
-
-    if respuesta.ok:
-        return respuesta.json(), None
-    return None, _motivo_del_error(respuesta)
-
-
-def _motivo_del_error(respuesta):
-    try:
-        return respuesta.json()['errors'][0]['description']
-    except (ValueError, KeyError, IndexError):
-        return MOTIVO_POR_DEFECTO
+        compra = llamar_api('GET', f'/compras/{id_compra}')
+    except ApiError as error:
+        return None, error.mensaje
+    return compra, None

@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta, timezone
 
 from dotenv import load_dotenv
 
@@ -30,3 +31,6 @@ ROL_ADMIN = 'admin'
 API_TIMEOUT_SEGUNDOS = 10
 
 HORAS_LIMITE_CANCELACION = 24
+
+ESTADO_PENDIENTE = 'pendiente'
+TZ_ARG = timezone(timedelta(hours=-3))

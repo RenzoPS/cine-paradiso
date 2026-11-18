@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from cine_paradiso_web.constants import HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE
+from cine_paradiso_web.constants import ESTADO_PENDIENTE, HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE, TZ_ARG
 from cine_paradiso_web.services.compras import abandonar_compra, cancelar_compra, confirmar_compra, obtener_compra
 
 compras_bp = Blueprint('compras', __name__)
@@ -13,8 +13,7 @@ MENSAJE_SIN_SESION_ABANDONAR = 'Tenés que iniciar sesión para abandonar la com
 MENSAJE_SIN_SESION_RESUMEN = 'Tenés que iniciar sesión para ver tu compra'
 MENSAJE_NO_PENDIENTE = 'Esta compra ya no está pendiente de pago'
 MENSAJE_NO_DISPONIBLE = 'Todavía no disponible'
-ESTADO_PENDIENTE = 'pendiente'
-TZ_ARG = timezone(timedelta(hours=-3))
+
 
 @compras_bp.route('/compras/<int:id_compra>/resumen', methods=['GET'])
 def resumen(id_compra):
@@ -24,7 +23,7 @@ def resumen(id_compra):
         flash(MENSAJE_SIN_SESION_RESUMEN, 'error')
         return redirect(url_for('cartelera.listar'))
 
-    compra, motivo = obtener_compra(id_compra, token)
+    compra, motivo = obtener_compra(id_compra)
 
     if motivo is not None:
         flash(motivo, 'error')
@@ -50,6 +49,7 @@ def resumen(id_compra):
         segundos_restantes=segundos_restantes,
     )
 
+
 @compras_bp.route('/compras/<int:id_compra>/confirmar', methods=['POST'])
 def confirmar(id_compra):
     token = request.cookies.get(TOKEN_COOKIE_NOMBRE)
@@ -57,7 +57,7 @@ def confirmar(id_compra):
     if token is None:
         return render_template('compras/no_confirmada.html', motivo=MENSAJE_SIN_SESION)
 
-    factura, motivo = confirmar_compra(id_compra, token)
+    factura, motivo = confirmar_compra(id_compra)
 
     if motivo is not None:
         return render_template('compras/no_confirmada.html', motivo=motivo)
@@ -89,7 +89,7 @@ def confirmar_cancelacion(id_compra):
     if token is None:
         return render_template('compras/cancelada.html', motivo=MENSAJE_SIN_SESION_CANCELAR)
 
-    _, motivo = cancelar_compra(id_compra, token)
+    _, motivo = cancelar_compra(id_compra)
 
     return render_template('compras/cancelada.html', motivo=motivo)
 
@@ -102,7 +102,7 @@ def abandonar(id_compra):
         flash(MENSAJE_SIN_SESION_ABANDONAR, 'error')
         return redirect(url_for('cartelera.listar'))
 
-    abandonada, motivo = abandonar_compra(id_compra, token)
+    abandonada, motivo = abandonar_compra(id_compra)
 
     if abandonada:
         flash('Abandonaste la compra. Las butacas quedaron libres', 'success')
