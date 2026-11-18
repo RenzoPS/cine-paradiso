@@ -71,7 +71,7 @@ El script va mostrando cada paso:
 1. Verifica Python y Docker.
 2. Crea el `.env` a partir de `.env.example`, si no existe.
 3. Crea el entorno virtual `.venv` e instala las dependencias de la API y del web.
-4. Levanta MySQL en Docker y espera a que termine de cargar el esquema.
+4. Levanta MySQL y Mailpit en Docker y espera a que MySQL termine de cargar el esquema.
 5. Levanta la API y el web.
 
 Con `./init.sh --instalar` solo instala, sin levantar nada. `Ctrl+C` frena la
@@ -82,6 +82,7 @@ API y el web; la base queda corriendo (`docker compose stop` para frenarla).
 | Web | http://localhost:5001 |
 | Backoffice | http://localhost:5001/admin |
 | API | http://localhost:5000/cine_paradiso_api |
+| Mails (Mailpit) | http://localhost:8025 |
 
 ### Con Docker (todo en contenedores)
 
@@ -92,8 +93,10 @@ cp .env.example .env              # completar API_SECRET_KEY
 docker compose up --build         # -d para dejarlo en segundo plano
 ```
 
-Levanta tres contenedores: la base (`db`), la API (`api`) y el web (`web`). La
-API espera a que MySQL esté listo antes de arrancar. Las URL son las mismas de
+Levanta cuatro contenedores: la base (`db`), la API (`api`), el web (`web`) y
+Mailpit (`mailpit`), un servidor de mail de prueba que atrapa los mails de la
+compra y los muestra en http://localhost:8025. La API espera a que MySQL esté
+listo antes de arrancar. Las URL son las mismas de
 la tabla de arriba. Para frenar todo: `docker compose down`. Si cambia el
 código, `docker compose up --build` vuelve a construir solo lo que cambió.
 
@@ -101,7 +104,7 @@ código, `docker compose up --build` vuelve a construir solo lo que cambió.
 
 ```bash
 cp .env.example .env              # Windows: copy .env.example .env
-docker compose up -d --wait db
+docker compose up -d --wait db mailpit
 
 python3 -m venv .venv             # Windows: python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate

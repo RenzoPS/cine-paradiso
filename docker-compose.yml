@@ -33,17 +33,36 @@ services:
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       # El QR apunta al web tal como se ve desde el navegador.
       WEB_URL: http://localhost:${WEB_PORT:-5001}
-      MAIL_HOST: ${MAIL_HOST:-}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USER: ${MAIL_USER:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM: ${MAIL_FROM:-}
+      # Adentro de la red de compose el servidor de mail se llama "mailpit".
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USER: ${MAIL_USER:-cine}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-cine}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@cineparadiso.com}
     ports:
       - "${API_PORT:-5000}:5000"
     depends_on:
       # Espera a que MySQL acepte conexiones, no solo a que el contenedor exista.
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Servidor de mail de prueba: atrapa los mails y los muestra en http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit
+    container_name: cine-paradiso-mailpit
+    restart: unless-stopped
+    environment:
+      # Acepta cualquier usuario y contraseña.
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      # Se arma su propio certificado: el envío de la API pide una conexión cifrada (starttls).
+      MP_SMTP_TLS_CERT: sans:localhost
+      MP_SMTP_TLS_KEY: sans:localhost
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
   web:
     build: ./web
