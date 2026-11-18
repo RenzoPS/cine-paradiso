@@ -1,3 +1,5 @@
+import base64
+
 import requests
 
 from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE
@@ -20,6 +22,21 @@ def confirmar_compra(id_compra, token):
     if respuesta.ok:
         return respuesta.json(), None
     return None, _motivo_del_error(respuesta)
+
+
+def obtener_qr_base64(id_compra, token):
+    try:
+        respuesta = requests.get(
+            f'{API_URL}/compras/{id_compra}/qr',
+            cookies={TOKEN_COOKIE_NOMBRE: token},
+            timeout=API_TIMEOUT_SEGUNDOS,
+        )
+    except requests.RequestException:
+        return None
+
+    if respuesta.ok:
+        return base64.b64encode(respuesta.content).decode('ascii')
+    return None
 
 
 def _motivo_del_error(respuesta):
