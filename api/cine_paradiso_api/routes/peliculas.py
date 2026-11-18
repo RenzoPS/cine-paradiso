@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from ..seguridad import admin_required
+from ..seguridad import verificar_administrador
 from ..services.peliculas import (
     actualizar_pelicula,
     buscar_pelicula,
@@ -24,25 +24,25 @@ def obtener_pelicula(id_pelicula):
 
 
 @peliculas_bp.route('/peliculas/tmdb', methods=['GET'])
-@admin_required
 def obtener_peliculas_tmdb():
+    verificar_administrador()
     return jsonify(buscar_peliculas_tmdb(request.args))
 
 
 @peliculas_bp.route('/peliculas', methods=['POST'])
-@admin_required
 def crear_pelicula():
+    verificar_administrador()
     pelicula = importar_pelicula(request.get_json(silent=True))
     return jsonify(pelicula), 201
 
 
 @peliculas_bp.route('/peliculas/<id_pelicula>', methods=['PUT'])
-@admin_required
 def reemplazar_pelicula(id_pelicula):
+    verificar_administrador()
     return jsonify(actualizar_pelicula(id_pelicula, request.get_json(silent=True)))
 
 
 @peliculas_bp.route('/peliculas/<id_pelicula>', methods=['DELETE'])
-@admin_required
 def dar_de_baja_pelicula(id_pelicula):
+    verificar_administrador()
     return jsonify(eliminar_pelicula(id_pelicula))

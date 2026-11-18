@@ -71,7 +71,7 @@ El script va mostrando cada paso:
 1. Verifica Python y Docker.
 2. Crea el `.env` a partir de `.env.example`, si no existe.
 3. Crea el entorno virtual `.venv` e instala las dependencias de la API y del web.
-4. Levanta MySQL en Docker y espera a que termine de cargar el esquema.
+4. Levanta MySQL y Mailpit en Docker y espera a que MySQL termine de cargar el esquema.
 5. Levanta la API y el web.
 
 Con `./init.sh --instalar` solo instala, sin levantar nada. `Ctrl+C` frena la
@@ -82,12 +82,29 @@ API y el web; la base queda corriendo (`docker compose stop` para frenarla).
 | Web | http://localhost:5001 |
 | Backoffice | http://localhost:5001/admin |
 | API | http://localhost:5000/cine_paradiso_api |
+| Mails (Mailpit) | http://localhost:8025 |
+
+### Con Docker (todo en contenedores)
+
+Requisitos: Docker y Docker Compose. No hace falta Python instalado.
+
+```bash
+cp .env.example .env              # completar API_SECRET_KEY
+docker compose up --build         # -d para dejarlo en segundo plano
+```
+
+Levanta cuatro contenedores: la base (`db`), la API (`api`), el web (`web`) y
+Mailpit (`mailpit`), un servidor de mail de prueba que atrapa los mails de la
+compra y los muestra en http://localhost:8025. La API espera a que MySQL esté
+listo antes de arrancar. Las URL son las mismas de
+la tabla de arriba. Para frenar todo: `docker compose down`. Si cambia el
+código, `docker compose up --build` vuelve a construir solo lo que cambió.
 
 ### Paso a paso (o en Windows)
 
 ```bash
 cp .env.example .env              # Windows: copy .env.example .env
-docker compose up -d --wait db
+docker compose up -d --wait db mailpit
 
 python3 -m venv .venv             # Windows: python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
@@ -108,12 +125,12 @@ datos de conexión en el `.env`:
 
 ```bash
 mysql -u root -p < api/db/init.sql       # crea la base cine_paradiso y las tablas
-mysql -u root -p < api/db/catalogo.sql   # carga los datos fijos del sistema
+mysql -u root -p < api/db/seed.sql       # carga los datos fijos del sistema
 ```
 
 ### Si cambia el esquema
 
-MySQL ejecuta `init.sql` y `catalogo.sql` **solo la primera vez**, cuando crea el
+MySQL ejecuta `init.sql` y `seed.sql` **solo la primera vez**, cuando crea el
 volumen. Si alguien mergea un cambio en esos archivos, hay que recrear la base
 (borra los datos locales):
 
@@ -134,15 +151,16 @@ docker compose down -v && docker compose up -d --wait db
 ```
 cine-paradiso/
 ├── init.sh                      instala y levanta todo
-├── docker-compose.yml           MySQL con el esquema y los datos iniciales
+├── docker-compose.yml           MySQL, la API y el web en contenedores
 ├── .env.example                 variables de entorno (copiar como .env)
 ├── docs/                        mockups e informe
 ├── api/
 │   ├── app.py                   arranque de la API, registra los blueprints
+│   ├── Dockerfile               imagen de la API
 │   ├── requirements.txt
 │   ├── db/
 │   │   ├── init.sql             script de creación: base y tablas
-│   │   └── catalogo.sql         script de carga: datos fijos del sistema
+│   │   └── seed.sql             script de carga: datos fijos del sistema
 │   ├── docs/swagger.yaml        contrato de la API (OpenAPI 3)
 │   └── cine_paradiso_api/
 │       ├── constants.py         configuración, formatos y códigos de error
@@ -154,6 +172,7 @@ cine-paradiso/
 │       └── repositories/        SQL; __init__.py tiene la conexión y las primitivas
 └── web/
     ├── app.py                   arranque del web, registra los blueprints
+    ├── Dockerfile               imagen del web
     ├── requirements.txt
     ├── templates/               templates Jinja (base.html, páginas por recurso)
     │   └── components/          piezas reutilizables con {% include %}
@@ -191,31 +210,30 @@ Viewer" de VS Code.
 | GET | `/usuarios` | Listado de usuarios | Admin |
 | PATCH | `/usuarios/{id_usuario}/rol` | Dar o quitar el rol de admin | Admin |
 | GET | `/peliculas/tmdb?q=` | Busca películas en TMDB para importar al catálogo | Admin |
-| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con géneros y póster y responde `201` | Admin |
-| GET | `/peliculas` | Listado paginado; filtros por título, género, clasificación, estado activo, cartelera, local y fecha | Público |
-| GET | `/peliculas/{id_pelicula}` | Detalle de película con sus géneros | Público |
+| POST | `/peliculas` | Recibe `{"tmdb_id": 11216}`; importa desde TMDB con su género principal y póster y responde `201` | Admin |
+| GET | `/peliculas` | Listado paginado; filtros por título, género, clasificación, vigencia (`activa`), cartelera, local y fecha | Público |
+| GET | `/peliculas/{id_pelicula}` | Detalle de película con su género | Público |
 | PUT | `/peliculas/{id_pelicula}` | Reemplazar sinopsis, póster, clasificación y período en cartel | Admin |
-| DELETE | `/peliculas/{id_pelicula}` | Baja lógica (`activa=false`); conserva película y asociaciones; repetible | Admin |
-| GET | `/generos` | Géneros disponibles | Público |
+| DELETE | `/peliculas/{id_pelicula}` | Baja lógica: cierra su período en cartel en el momento actual; conserva la película; repetible | Admin |
 | GET | `/locales` | Listado de locales | Público |
 | POST | `/locales/{id_local}/salas` | Alta de una sala en un local | Admin |
 | PUT | `/salas/{id_sala}` | Editar una sala | Admin |
+| GET | `/salas` | Salas y locales disponibles para programar funciones | Admin |
 | POST | `/salas/{id_sala}/butacas` | Genera la grilla de butacas (filas × columnas) | Admin |
 | GET | `/salas/{id_sala}/butacas` | Butacas y capacidad de la sala | Admin |
-| GET | `/funciones` | Funciones disponibles, con filtros por película, local y fecha | Público |
-| GET | `/funciones/{id_funcion}` | Detalle de una función: película, sala, local, fecha y precio | Público |
-| POST | `/funciones` | Programar una función | Admin |
-| PUT | `/funciones/{id_funcion}` | Editar una función | Admin |
-| DELETE | `/funciones/{id_funcion}` | Baja de una función sin ventas | Admin |
+| GET | `/funciones` | Listado paginado de funciones futuras; filtros por `id_pelicula`, `id_local` y `fecha` | Público |
+| GET | `/funciones/{id_funcion}` | Detalle de una función con película, sala, local, fecha/hora y precio | Público |
+| POST | `/funciones` | Programar una función con película, sala, fecha/hora y precio | Admin |
+| PUT | `/funciones/{id_funcion}` | Reemplazar película, sala, fecha/hora y precio | Admin |
 | GET | `/funciones/{id_funcion}/butacas` | Mapa de butacas de la función: libres y ocupadas | Público |
 | GET | `/servicios` | Servicios activos | Público |
 | POST | `/servicios` | Alta de un servicio | Admin |
 | PUT | `/servicios/{id_servicio}` | Modificar un servicio | Admin |
 | DELETE | `/servicios/{id_servicio}` | Baja lógica de un servicio | Admin |
 | POST | `/compras` | Reserva butacas y crea la compra `pendiente`. 409 si alguna ya se ocupó | Cliente |
-| GET | `/compras` | Compras del usuario logueado | Cliente |
+| GET | `/compras` | Listado paginado de compras del usuario logueado | Cliente |
 | GET | `/compras/{id_compra}` | Detalle de una compra | Cliente |
-| DELETE | `/compras/{id_compra}` | Abandonar una compra pendiente y liberar las butacas | Cliente |
+| DELETE | `/compras/{id_compra}` | Cancelar una compra pendiente antes de pagar: la borra y libera las butacas | Cliente |
 | PUT | `/compras/{id_compra}/servicios` | Servicios y cantidades de una compra pendiente | Cliente |
 | POST | `/compras/{id_compra}/confirmar` | Pasa la compra a `pagada`, genera la factura y envía el mail con el QR | Cliente |
 | GET | `/compras/{id_compra}/factura` | Datos de la factura | Cliente |
@@ -249,18 +267,81 @@ disponibilidad debe tener ambas fechas nulas o ambas informadas, y la fecha de
 inicio no puede ser posterior a la de fin. Las URL de póster deben usar HTTP o
 HTTPS.
 
-El listado de películas aplica `activa=true` por defecto. Los filtros `id_local`
-y `fecha` buscan películas con funciones activas futuras en ese contexto; `fecha`
-usa `YYYY-MM-DD` en GMT-3 y una fecha anterior a hoy no devuelve películas.
-`en_cartel=true` requiere película activa, período de disponibilidad vigente
-(ambas fechas informadas) y al menos una función activa futura. `en_cartel=false`
+`GET /funciones` devuelve solo funciones futuras, ordenadas por fecha y hora.
+Admite filtros por `id_pelicula`, `id_local` y `fecha` (`YYYY-MM-DD` en GMT-3).
+Para hoy solo incluye funciones posteriores al momento actual; una fecha anterior
+a hoy devuelve un listado vacío. La respuesta incluye los identificadores y
+nombres de película, sala y local, la dirección del local, el póster y duración
+de la película, la fecha/hora y el precio. `GET /funciones/{id_funcion}` devuelve
+el mismo formato para una función; si no existe, responde `404`.
+
+El `POST /funciones` y el `PUT /funciones/{id_funcion}` requieren los cuatro
+campos `id_pelicula`, `id_sala`, `fecha_hora` y `precio`. La película debe tener
+duración positiva y un período de disponibilidad configurado que incluya el
+inicio de la función. La fecha/hora debe ser futura y usar el formato
+`YYYY-MM-DDTHH:MM:SS-03:00`; el precio debe ser no negativo y tener como máximo
+dos decimales. No se permiten superposiciones en una misma sala: se calcula el
+fin de cada función con la duración de su película, y entre una función y la
+siguiente tiene que quedar un margen de 30 minutos (15 de limpieza,
+`MINUTOS_LIMPIEZA_SALA`, y 15 de apertura de sala, `MINUTOS_APERTURA_SALA`). `GET /salas` requiere rol Admin y devuelve las salas
+con su local y dirección para elegirlas al programar.
+
+`GET /funciones/{id_funcion}/butacas` devuelve el mapa de la sala para esa
+función: los datos de la función (mismo formato que `GET /funciones/{id_funcion}`),
+la `capacidad` de la sala, las butacas `disponibles` y las `filas`, cada una con
+sus butacas (`id_butaca`, `numero` y `ocupada`). Una butaca está ocupada si
+existe su entrada en esa función. Si la función no existe, responde `404`.
+
+El hold de una compra pendiente dura 10 minutos (`MINUTOS_RESERVA`) y vence de
+forma lazy, sin procesos en segundo plano: antes de mirar o reservar una
+función se vencen sus compras pendientes que superaron ese tiempo (pasan a
+`vencida` y se borran sus entradas, así las butacas quedan libres). Lo hace
+`vencer_reservas_de_funcion(id_funcion)` del service de compras; lo llaman el
+mapa, la reserva y la búsqueda de una compra del usuario. Lo que necesite el
+estado real de las compras de una función (por ejemplo, los dashboards) la
+llama antes de consultar.
+
+`POST /compras` recibe `id_funcion` y `butacas` (lista de 1 a 4 `id_butaca`
+sin repetir, de la sala de la función) y crea la compra `pendiente` con sus
+entradas en una sola transacción. La reserva dura 10 minutos. Antes de reservar
+se vencen los holds de esa función. Si otra compra ya tomó alguna butaca responde `409`, y si la
+función ya empezó, también `409`. Devuelve `201` con el detalle de la compra.
+
+`GET /compras` devuelve el listado paginado de las compras del cliente logueado,
+ordenadas de la más reciente a la más antigua, con los datos de la función,
+sus butacas, `subtotal_entradas`, `puede_cancelar` y `tiene_qr`. Si alguna
+compra está `pendiente`, primero vence los holds expirados de su función para
+informar el estado real.
+
+`GET /compras/{id_compra}` devuelve la compra del usuario logueado: `estado`,
+`fecha_hora`, `vence_en` (solo mientras está pendiente, para la cuenta regresiva),
+la función, las butacas y `subtotal_entradas` (precio de la función por la
+cantidad de butacas). Si la compra está pendiente, antes se vencen los holds de
+su función, así devuelve el estado real. Si la compra no existe o es de otro
+usuario, responde `404`.
+
+`DELETE /compras/{id_compra}` cancela una compra pendiente antes de pagarla:
+borra la compra, sus entradas y sus servicios, así las butacas quedan libres y
+no cuenta como cancelación en los dashboards. Responde `204`, o `409` si la
+compra no está pendiente.
+
+Cada película se devuelve con su `genero` (el principal de TMDB) y con `activa`,
+que no se guarda en la base: se calcula a partir del período en cartel. Una
+película está activa si `disponible_hasta` es nulo o todavía no pasó. El
+listado aplica `activa=true` por defecto, y `activa=false` devuelve las dadas de
+baja. Los filtros `id_local` y `fecha` buscan películas con funciones futuras en
+ese contexto; `fecha` usa `YYYY-MM-DD` en GMT-3 y una fecha anterior a hoy no
+devuelve películas. `en_cartel=true` requiere un período de disponibilidad
+vigente (ambas fechas informadas) y al menos una función futura. `en_cartel=false`
 busca las películas que no cumplen esa regla en el contexto opcional de local y/o
 fecha. La cartelera consulta la hora de MySQL en GMT-3, calculada a partir de
 `UTC_TIMESTAMP()`, para no depender de la zona horaria de sesión del servidor.
 
-El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: cambia `activa` a
-`false` sin eliminar la película ni sus asociaciones. Si ya estaba inactiva,
-devuelve igualmente el detalle con `200`.
+El `DELETE /peliculas/{id_pelicula}` realiza una baja lógica: pone
+`disponible_hasta` en el momento actual (y ajusta `disponible_desde` si era
+posterior o nulo), sin eliminar la película. Desde ahí deja de estar activa y
+sale de la cartelera. Si ya estaba dada de baja, devuelve igualmente el detalle
+con `200`.
 
 Las fechas viajan en ISO 8601 con desplazamiento fijo de GMT-3:
 `2026-11-18T20:30:00-03:00`.

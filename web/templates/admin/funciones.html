@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Funciones - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <span>Funciones</span>
+    </nav>
+
+    <header class="admin-page-header admin-page-header-row">
+        <div>
+            <p class="admin-eyebrow">Programación</p>
+            <h1>Funciones</h1>
+            <p>Consultá y administrá las próximas funciones del cine.</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('admin.nueva_funcion') }}">
+            Programar función
+        </a>
+    </header>
+
+    <section class="admin-panel" aria-labelledby="funciones-heading">
+        <div class="admin-panel-header">
+            <div>
+                <h2 id="funciones-heading">Próximas funciones</h2>
+                <p>Las funciones se ordenan por fecha y hora.</p>
+            </div>
+            <span class="admin-status">Mostrando {{ funciones | length }}</span>
+        </div>
+
+        <div class="admin-table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Película</th>
+                        <th scope="col">Sala / local</th>
+                        <th scope="col">Fecha y hora</th>
+                        <th scope="col">Precio</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for funcion in funciones %}
+                    <tr>
+                        <td>{{ funcion.pelicula }}</td>
+                        <td>{{ funcion.sala }} · {{ funcion.local }}</td>
+                        <td>{{ funcion.fecha_hora | fecha_legible }}</td>
+                        <td>${{ funcion.precio }}</td>
+                        <td>
+                            <div class="admin-row-actions">
+                                <a class="btn btn-sm btn-outline"
+                                   href="{{ url_for('admin.editar_funcion', id_funcion=funcion.id_funcion) }}">
+                                    Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td class="admin-empty-cell" colspan="5">
+                            No hay funciones futuras programadas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}

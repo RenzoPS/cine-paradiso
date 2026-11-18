@@ -64,3 +64,160 @@
     background-color: var(--color-error-bg);
     color: var(--color-error);
 }
+
+/* --------------------------------------------------------------------------
+   Mis entradas (listado de compras del cliente)
+   -------------------------------------------------------------------------- */
+
+.mis-entradas {
+    max-width: 780px;
+    margin: 2rem auto 4rem;
+    padding: 0 1rem;
+}
+
+.mis-entradas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.mis-entradas-header .checkout-title {
+    margin-bottom: 0.25rem;
+}
+
+.mis-entradas-subtitulo {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+}
+
+.mis-entradas-lista {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.mis-entradas-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.mis-entradas-principal {
+    flex: 1;
+    min-width: 0;
+}
+
+.mis-entradas-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.mis-entradas-encabezado {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+}
+
+.mis-entradas-meta {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.mis-entradas-butacas {
+    margin-top: 0.4rem;
+    font-weight: 600;
+}
+
+.mis-entradas-total {
+    margin-top: 0.25rem;
+    color: var(--color-accent);
+    font-weight: 700;
+}
+
+.mis-entradas-acciones {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.mis-entradas-qr {
+    display: grid;
+    justify-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.entrada-qr-imagen-sm {
+    width: 7.5rem;
+}
+
+.entrada-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.entrada-badge-pagada {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.entrada-badge-pendiente {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.entrada-badge-usada {
+    background-color: var(--color-bg-surface-elevated);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-light);
+}
+
+.entrada-badge-cancelada,
+.entrada-badge-vencida {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+}
+
+.mis-entradas-vacio {
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+@media (max-width: 600px) {
+    .mis-entradas-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mis-entradas-qr {
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-border);
+    }
+}
+

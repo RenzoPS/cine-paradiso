@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% block title %}Cartelera - Cine Paradiso{% endblock %}
@@ -24,9 +25,13 @@
             <label for="filtro-sucursal" class="filter-label">Sucursal</label>
             <div class="select-wrapper">
                 <select name="sucursal" id="filtro-sucursal" class="filter-select" onchange="this.form.submit()">
-                    {% for suc in sucursales %}
-                        <option value="{{ suc.id }}" {% if filtro_sucursal == suc.id %}selected{% endif %}>
-                            {{ suc.nombre }}
+                    <option value="" {% if not filtro_sucursal %}selected{% endif %}>
+                        Todas las sedes
+                    </option>
+                    {% for local in locales %}
+                        <option value="{{ local.id_local }}"
+                            {% if filtro_sucursal == local.id_local|string %}selected{% endif %}>
+                            {{ local.local }}
                         </option>
                     {% endfor %}
                 </select>
@@ -83,11 +88,14 @@
     {% if peliculas %}
         <div class="movies-grid">
             {% for pelicula in peliculas %}
+                {% set id_pel = pelicula.id_pelicula if pelicula.id_pelicula is defined else pelicula.id %}
+                {% set poster = pelicula.poster_url or pelicula.afiche %}
+                {% set duracion_texto = (pelicula.duracion_min ~ ' min') if pelicula.duracion_min else pelicula.duracion %}
                 <article class="movie-card card">
                     <div class="movie-poster-wrapper">
-                        {% if pelicula.afiche %}
-                            <img src="{{ pelicula.afiche }}" 
-                                 alt="Afiche de {{ pelicula.titulo }}" 
+                        {% if poster %}
+                            <img src="{{ poster }}"
+                                 alt="Afiche de {{ pelicula.titulo }}"
                                  class="movie-poster"
                                  loading="lazy">
                         {% else %}
@@ -113,37 +121,47 @@
 
                     <div class="movie-info">
                         <div class="movie-meta">
-                            <span class="movie-duration">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                {{ pelicula.duracion }}
-                            </span>
-                            <span class="movie-year">{{ pelicula.anio }}</span>
+                            {% if duracion_texto %}
+                                <span class="movie-duration">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    {{ duracion_texto }}
+                                </span>
+                            {% endif %}
+                            {% if pelicula.anio %}
+                                <span class="movie-year">{{ pelicula.anio }}</span>
+                            {% endif %}
                         </div>
 
                         <h2 class="movie-title">
-                            <a href="{{ url_for('cartelera.detalle', id_pelicula=pelicula.id) }}">
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel, sucursal=filtro_sucursal) }}">
                                 {{ pelicula.titulo }}
                             </a>
                         </h2>
 
-                        <p class="movie-director">Dir. {{ pelicula.director }}</p>
+                        {% if pelicula.director %}
+                            <p class="movie-director">Dir. {{ pelicula.director }}</p>
+                        {% endif %}
 
-                        <div class="movie-genres">
-                            {% for g in pelicula.generos %}
-                                <span class="genre-tag">{{ g }}</span>
-                            {% endfor %}
-                        </div>
+                        {% if pelicula.generos %}
+                            <div class="movie-genres">
+                                {% for g in pelicula.generos %}
+                                    <span class="genre-tag">{{ g }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
 
                         <div class="movie-card-footer">
-                            <div class="movie-price-tag">
-                                <span class="price-label">Desde</span>
-                                <span class="price-amount">${{ pelicula.precio }}</span>
-                            </div>
+                            {% if pelicula.precio %}
+                                <div class="movie-price-tag">
+                                    <span class="price-label">Desde</span>
+                                    <span class="price-amount">${{ pelicula.precio }}</span>
+                                </div>
+                            {% endif %}
 
-                            <a href="{{ url_for('cartelera.detalle', id_pelicula=pelicula.id) }}" class="btn btn-primary btn-sm movie-action-btn">
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel, sucursal=filtro_sucursal) }}" class="btn btn-primary btn-sm movie-action-btn">
                                 Ver funciones / Horarios
                             </a>
                         </div>

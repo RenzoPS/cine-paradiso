@@ -28,8 +28,7 @@
 
     <ul class="checkout-lista">
         <li class="checkout-fila">
-            Fila {{ butacas[0].fila }} - asientos
-            {% for b in butacas %}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+            Butacas: {% for b in butacas %}{{ b.fila }}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
         </li>
         {% for s in servicios %}
         <li class="checkout-fila">{{ s.nombre }} x{{ s.cantidad }}</li>

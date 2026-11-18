@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis entradas - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/qr.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="mis-entradas">
+    <header class="mis-entradas-header">
+        <div>
+            <h1 class="checkout-title">Mis entradas</h1>
+            <p class="mis-entradas-subtitulo">Consultá tus compras, códigos QR de acceso y opciones de cancelación.</p>
+        </div>
+        <a href="{{ url_for('cartelera.listar') }}" class="btn btn-outline">Ver cartelera</a>
+    </header>
+
+    {% if compras %}
+    <div class="mis-entradas-lista">
+        {% for compra in compras %}
+        <article class="mis-entradas-card card">
+            <div class="mis-entradas-principal">
+                <div class="checkout-funcion">
+                    {% if compra.funcion.poster_url %}
+                    <img
+                        src="{{ compra.funcion.poster_url }}"
+                        alt="Póster de {{ compra.funcion.pelicula }}"
+                        class="checkout-poster"
+                    >
+                    {% else %}
+                    <div class="checkout-poster checkout-poster-vacio">Sin póster</div>
+                    {% endif %}
+
+                    <div class="mis-entradas-info">
+                        <div class="mis-entradas-encabezado">
+                            <h2 class="checkout-pelicula">{{ compra.funcion.pelicula }}</h2>
+                            <span class="entrada-badge entrada-badge-{{ compra.estado }}">
+                                {{ compra.estado | capitalize }}
+                            </span>
+                        </div>
+                        <p class="mis-entradas-meta">{{ compra.funcion.local }} · {{ compra.funcion.sala }}</p>
+                        <p class="mis-entradas-meta">{{ compra.funcion.fecha_hora | fecha_legible }}</p>
+                        {% if compra.butacas %}
+                        <p class="mis-entradas-butacas">
+                            Fila {{ compra.butacas[0].fila }} - asientos
+                            {% for b in compra.butacas %}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        {% endif %}
+                        <p class="mis-entradas-total">Subtotal entradas: $ {{ compra.subtotal_entradas }}</p>
+                    </div>
+                </div>
+
+                <div class="mis-entradas-acciones">
+                    {% if compra.puede_cancelar %}
+                    <a
+                        href="{{ url_for('compras.cancelar', id_compra=compra.id_compra) }}"
+                        class="btn btn-sm btn-peligro"
+                    >
+                        Cancelar entrada
+                    </a>
+                    <span class="entrada-qr-plazo">
+                        Podés cancelar hasta {{ horas_limite }} horas antes de la función
+                    </span>
+                    {% elif compra.estado == 'pagada' %}
+                    <span class="entrada-qr-plazo">
+                        Ya no se puede cancelar (faltan menos de {{ horas_limite }} horas)
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if compra.estado == 'pagada' %}
+            <div class="mis-entradas-qr">
+                <div class="entrada-qr-imagen entrada-qr-imagen-sm">
+                    {% if compra.qr_imagen %}
+                    <img
+                        src="data:image/png;base64,{{ compra.qr_imagen }}"
+                        alt="Código QR de la compra {{ compra.id_compra }}"
+                    >
+                    {% else %}
+                    <span class="entrada-qr-pendiente">El QR llega a tu correo</span>
+                    {% endif %}
+                </div>
+                <span class="entrada-qr-ayuda">Compra #{{ compra.id_compra }}</span>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mis-entradas-vacio card">
+        <p>Todavía no tenés entradas registradas en tu cuenta.</p>
+        <a href="{{ url_for('cartelera.listar') }}" class="btn btn-primary">Ver cartelera</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

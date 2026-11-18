@@ -80,6 +80,14 @@ ESTADO_VENCIDA   = 'vencida'
 ESTADO_USADA     = 'usada'
 ESTADO_CANCELADA = 'cancelada'
 
+# Minutos que una compra pendiente retiene sus butacas antes de vencer.
+MINUTOS_RESERVA = 10
+MAX_BUTACAS_POR_COMPRA = 4
+
+# Entre dos funciones de una misma sala: limpieza al terminar y apertura antes de empezar.
+MINUTOS_LIMPIEZA_SALA = 15
+MINUTOS_APERTURA_SALA = 15
+
 QR_SALT   = 'qr-compra'
 QR_ESCALA = 8
 
@@ -89,11 +97,19 @@ ERROR_CODE_COMPRA_NOT_FOUND      = 'compra.not.found'
 ERROR_CODE_COMPRA_VENCIDA        = 'compra.vencida'
 ERROR_CODE_COMPRA_NO_CONFIRMABLE = 'compra.no.confirmable'
 ERROR_CODE_COMPRA_SIN_FACTURA    = 'compra.sin.factura'
+ERROR_CODE_COMPRA_BUTACA_OCUPADA = 'compra.butaca.ocupada'
+ERROR_CODE_COMPRA_BUTACA_AJENA   = 'compra.butaca.ajena'
+ERROR_CODE_COMPRA_FUNCION_PASADA = 'compra.funcion.pasada'
+ERROR_CODE_COMPRA_NO_ABANDONABLE = 'compra.no.abandonable'
+ERROR_CODE_COMPRA_NO_CANCELABLE  = 'compra.no.cancelable'
+ERROR_CODE_COMPRA_FUERA_DE_PLAZO = 'compra.fuera.plazo'
 
-ERROR_CODE_QR_INVALIDO     = 'qr.invalid'
-ERROR_CODE_QR_SIN_EMITIR   = 'qr.not.issued'
-ERROR_CODE_QR_UTILIZADO    = 'qr.already.used'
-ERROR_CODE_QR_CANCELADO    = 'qr.cancelled'
-ERROR_CODE_QR_NO_PAGADO    = 'qr.not.paid'
-ERROR_CODE_QR_OTRA_FUNCION = 'qr.wrong.function'
-ERROR_CODE_QR_OTRO_DIA     = 'qr.wrong.date'
+ERROR_CODE_QR_INVALIDO          = 'qr.invalid'
+ERROR_CODE_QR_SIN_EMITIR        = 'qr.not.issued'
+ERROR_CODE_QR_UTILIZADO         = 'qr.already.used'
+ERROR_CODE_QR_CANCELADO         = 'qr.cancelled'
+ERROR_CODE_QR_NO_PAGADO         = 'qr.not.paid'
+ERROR_CODE_QR_OTRA_FUNCION      = 'qr.wrong.function'
+ERROR_CODE_QR_OTRO_DIA          = 'qr.wrong.date'
+ERROR_CODE_QR_SALA_CERRADA      = 'qr.room.closed'
+ERROR_CODE_QR_FUNCION_TERMINADA = 'qr.show.ended'
