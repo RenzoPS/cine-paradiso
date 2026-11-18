@@ -6,6 +6,7 @@ from io import BytesIO
 from sqlalchemy.exc import IntegrityError
 
 from ..constants import (
+    BASE_URL,
     ERROR_CODE_COMPRA_BUTACA_AJENA,
     ERROR_CODE_COMPRA_BUTACA_OCUPADA,
     ERROR_CODE_COMPRA_FUNCION_PASADA,
@@ -31,9 +32,10 @@ from ..constants import (
     TZ_ARG,
     WEB_URL,
 )
+from ..paginacion import PARAMETROS_PAGINACION, leer_parametros_paginacion, paginar
 from ..repositories import compras as db_compras
 from ..repositories import transaccion
-from ..utils import ErrorAPI, formatear_fecha_hora
+from ..utils import ErrorAPI, formatear_fecha_hora, rechazar_campos_desconocidos
 from ..validators.compras import validar_cuerpo_compra, validar_cuerpo_validacion_qr, validar_id_compra
 from .funciones import buscar_funcion
 from . import mail as mail_service
@@ -475,3 +477,62 @@ def abandonar_compra(id_compra, id_usuario: int) -> None:
             )
 
         db_compras.eliminar_compra(conexion, id_validado)
+
+
+def listar_compras(args, id_usuario: int) -> dict:
+    """
+    Lista las compras del cliente paginadas. Si alguna esta pendiente, primero
+    vence las reservas vencidas de su funcion para informar el estado real.
+    """
+    rechazar_campos_desconocidos(args, PARAMETROS_PAGINACION, 'parametros de consulta')
+    limit, offset = leer_parametros_paginacion(args)
+
+    compras, total = db_compras.listar_compras_de_usuario(id_usuario, limit, offset)
+    ahora = _ahora()
+    limite_cancelacion = timedelta(hours=HORAS_LIMITE_CANCELACION)
+    items = []
+
+    for compra in compras:
+        estado = compra['estado']
+        if estado == ESTADO_PENDIENTE:
+            vencer_reservas_de_funcion(compra['id_funcion'])
+            actualizada = db_compras.obtener_compra_por_id(compra['id_compra'])
+            if actualizada is not None:
+                estado = actualizada['estado']
+
+        butacas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
+        fecha_hora_funcion = compra['fecha_hora_funcion']
+        puede_cancelar = (
+            estado == ESTADO_PAGADA
+            and fecha_hora_funcion - ahora >= limite_cancelacion
+        )
+        tiene_qr = estado in ESTADOS_CON_QR
+
+        items.append({
+            'id_compra': compra['id_compra'],
+            'estado': estado,
+            'fecha_hora': formatear_fecha_hora(compra['fecha_hora']),
+            'funcion': {
+                'id_funcion': compra['id_funcion'],
+                'pelicula': compra['pelicula'],
+                'poster_url': compra['poster_url'],
+                'sala': compra['sala'],
+                'local': compra['local'],
+                'fecha_hora': formatear_fecha_hora(fecha_hora_funcion),
+                'precio': str(compra['precio']),
+            },
+            'butacas': butacas,
+            'subtotal_entradas': str(Decimal(str(compra['precio'])) * len(butacas)),
+            'puede_cancelar': puede_cancelar,
+            'tiene_qr': tiene_qr,
+        })
+
+    return paginar(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        recurso='compras',
+        path=f'{BASE_URL}/compras',
+    )
+

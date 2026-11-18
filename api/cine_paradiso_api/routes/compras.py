@@ -6,6 +6,7 @@ from ..services.compras import (
     buscar_compra,
     confirmar_compra,
     crear_compra,
+    listar_compras,
     listar_compras_para_validacion_admin,
     obtener_factura,
     obtener_qr_de_compra,
@@ -14,6 +15,12 @@ from ..services.compras import (
 )
 
 compras_bp = Blueprint('compras', __name__)
+
+
+@compras_bp.route('/compras', methods=['GET'])
+def get_compras():
+    id_usuario = verificar_cliente()['id_usuario']
+    return jsonify(listar_compras(request.args, id_usuario))
 
 
 @compras_bp.route('/compras', methods=['POST'])
