@@ -100,6 +100,8 @@ ERROR_CODE_COMPRA_BUTACA_OCUPADA = 'compra.butaca.ocupada'
 ERROR_CODE_COMPRA_BUTACA_AJENA   = 'compra.butaca.ajena'
 ERROR_CODE_COMPRA_FUNCION_PASADA = 'compra.funcion.pasada'
 ERROR_CODE_COMPRA_NO_ABANDONABLE = 'compra.no.abandonable'
+ERROR_CODE_COMPRA_NO_CANCELABLE  = 'compra.no.cancelable'
+ERROR_CODE_COMPRA_FUERA_DE_PLAZO = 'compra.fuera.plazo'
 
 ERROR_CODE_QR_INVALIDO          = 'qr.invalid'
 ERROR_CODE_QR_SIN_EMITIR        = 'qr.not.issued'
