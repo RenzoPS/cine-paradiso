@@ -4,6 +4,7 @@ from ..seguridad import verificar_administrador, verificar_autenticacion, verifi
 from ..services.compras import (
     abandonar_compra,
     buscar_compra,
+    cancelar_compra,
     confirmar_compra,
     crear_compra,
     obtener_factura,
@@ -37,6 +38,12 @@ def delete_compra(id_compra):
 def post_confirmar_compra(id_compra):
     id_usuario = verificar_autenticacion() ['id_usuario']
     return jsonify(confirmar_compra(id_compra, id_usuario))
+
+
+@compras_bp.route('/compras/<id_compra>/cancelar', methods=['POST'])
+def post_cancelar_compra(id_compra):
+    id_usuario = verificar_cliente()['id_usuario']
+    return jsonify(cancelar_compra(id_compra, id_usuario))
 
 
 @compras_bp.route('/compras/<id_compra>/factura', methods=['GET'])

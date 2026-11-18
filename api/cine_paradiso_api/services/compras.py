@@ -8,9 +8,10 @@ from sqlalchemy.exc import IntegrityError
 from ..constants import (
     ERROR_CODE_COMPRA_BUTACA_AJENA,
     ERROR_CODE_COMPRA_BUTACA_OCUPADA,
+    ERROR_CODE_COMPRA_FUERA_DE_PLAZO,
     ERROR_CODE_COMPRA_FUNCION_PASADA,
     ERROR_CODE_COMPRA_NO_ABANDONABLE,
-    ERROR_CODE_COMPRA_NO_CONFIRMABLE,
+    ERROR_CODE_COMPRA_NO_CANCELABLE,ERROR_CODE_COMPRA_NO_CONFIRMABLE,
     ERROR_CODE_COMPRA_NOT_FOUND,
     ERROR_CODE_COMPRA_SIN_FACTURA,
     ERROR_CODE_COMPRA_VENCIDA,
@@ -419,3 +420,46 @@ def abandonar_compra(id_compra, id_usuario: int) -> None:
             )
 
         db_compras.eliminar_compra(conexion, id_validado)
+
+
+
+def _error_no_cancelable(estado: str) -> ErrorAPI:
+    return ErrorAPI(
+        code=ERROR_CODE_COMPRA_NO_CANCELABLE,
+        message='La compra no se puede cancelar',
+        description=f"La compra esta en estado '{estado}' y solo se cancelan las pagadas",
+        status=409,
+    )
+
+
+def cancelar_compra(id_compra, id_usuario: int) -> dict:
+    """
+    Cancela una compra pagada si faltan al menos HORAS_LIMITE_CANCELACION horas para la funcion.
+    La compra queda cancelada y sus butacas quedan libres.
+    """
+    id_validado = validar_id_compra(id_compra)
+    compra = _obtener_compra_propia(id_validado, id_usuario)
+
+    if compra['estado'] != ESTADO_PAGADA:
+        raise _error_no_cancelable(compra['estado'])
+
+    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(compra['fk_id_funcion'])
+    limite = fecha_hora_funcion - timedelta(hours=HORAS_LIMITE_CANCELACION)
+
+    if _ahora() > limite:
+        raise ErrorAPI(
+            code=ERROR_CODE_COMPRA_FUERA_DE_PLAZO,
+            message='Fuera de plazo',
+            description=f'Solo se puede cancelar hasta {HORAS_LIMITE_CANCELACION} horas antes de la funcion',
+            status=409,
+        )
+
+    with transaccion() as conexion:
+        compra_bloqueada = db_compras.bloquear_compra(conexion, id_validado)
+        if compra_bloqueada['estado'] != ESTADO_PAGADA:
+            raise _error_no_cancelable(compra_bloqueada['estado'])
+
+        db_compras.marcar_compra_cancelada(conexion, id_validado)
+        db_compras.eliminar_entradas_de_compra(conexion, id_validado)
+
+    return {'id_compra': id_validado, 'estado': ESTADO_CANCELADA}

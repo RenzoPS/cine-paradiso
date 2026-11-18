@@ -823,6 +823,65 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /compras/{id_compra}/cancelar:
+    post:
+      summary: "Cancelar una compra pagada"
+      description: |
+        Cancela una compra pagada si faltan al menos 24 horas para la función. La compra pasa a `cancelada` y se borran sus entradas: las butacas quedan libres.
+      operationId: post_cancelar_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra cancelada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 7
+                  estado:
+                    type: string
+                    example: cancelada
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pagada (`compra.no.cancelable`) o faltan menos de 24 horas para la función (`compra.fuera.plazo`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /compras/{id_compra}/factura:
     get:
       summary: "Obtener la factura de una compra"

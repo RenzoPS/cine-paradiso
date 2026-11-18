@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import bindparam, text
 
-from ..constants import ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA, ESTADO_VENCIDA
+from ..constants import ESTADO_CANCELADA,ESTADO_PAGADA, ESTADO_PENDIENTE, ESTADO_USADA, ESTADO_VENCIDA
 from . import ejecutar_consulta, fila_a_dict, transaccion
 
 def obtener_compra_por_id(id_compra: int) -> dict | None:
@@ -221,3 +221,28 @@ def eliminar_compra(conexion, id_compra: int) -> None:
     conexion.execute(text('DELETE FROM compras_servicios WHERE fk_id_compra = :id_compra'), parametros)
     conexion.execute(text('DELETE FROM entradas WHERE fk_id_compra = :id_compra'), parametros)
     conexion.execute(text('DELETE FROM compras WHERE id_compra = :id_compra'), parametros)
+
+
+
+def marcar_compra_cancelada(conexion, id_compra: int) -> None:
+    """
+    Pasa la compra a cancelada. La compra queda guardada para contarla en los dashboards.
+    """
+    conexion.execute(
+        text("""
+            UPDATE compras
+            SET estado = :estado_cancelada
+            WHERE id_compra = :id_compra
+        """),
+        {'id_compra': id_compra, 'estado_cancelada': ESTADO_CANCELADA},
+    )
+
+
+def eliminar_entradas_de_compra(conexion, id_compra: int) -> None:
+    """
+    Borra las entradas de la compra: las butacas quedan libres.
+    """
+    conexion.execute(
+        text('DELETE FROM entradas WHERE fk_id_compra = :id_compra'),
+        {'id_compra': id_compra},
+    )
