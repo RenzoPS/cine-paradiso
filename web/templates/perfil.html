@@ -35,6 +35,12 @@
                 <p>{{ usuario.fecha_creacion }}</p>
             </div>
         </div>
+
+        {% if usuario.rol == 'cliente' %}
+        <div class="checkout-acciones">
+            <a href="{{ url_for('compras.listar') }}" class="btn btn-primary">Mis entradas</a>
+        </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
