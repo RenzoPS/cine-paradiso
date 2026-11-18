@@ -368,7 +368,7 @@ def editar_funcion(id_funcion):
 
 
 @admin_bp.route('/validar', methods=['GET', 'POST'])
-def simular_qr():
+def ingresar_qr():
     redireccion = verificar_administrador()
     if redireccion:
         return redireccion
@@ -376,8 +376,8 @@ def simular_qr():
     if request.method == 'POST':
         qr_token = request.form.get('qr_token', '').strip()
         if not qr_token:
-            flash('Tenés que ingresar un token QR para simular el escaneo.', 'error')
-            return redirect(url_for('admin.simular_qr'))
+            flash('Tenés que ingresar el código o token del QR para validar.', 'error')
+            return redirect(url_for('admin.ingresar_qr'))
         return redirect(url_for('admin.validar_qr', qr_token=qr_token))
 
     return render_template('admin/validar_qr.html', qr_token=None)
