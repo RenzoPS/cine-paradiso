@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from ..constants import BASE_URL
+from ..constants import BASE_URL, MINUTOS_APERTURA_SALA, MINUTOS_LIMPIEZA_SALA
 from ..paginacion import paginar
 from ..repositories import transaccion
 from ..repositories import funciones as db_funciones
@@ -102,19 +102,22 @@ def _validar_programacion(
             status=409,
         )
 
+    # Entre funciones de una misma sala tiene que quedar el margen de limpieza y apertura.
+    margen_minutos = MINUTOS_LIMPIEZA_SALA + MINUTOS_APERTURA_SALA
+    margen = timedelta(minutes=margen_minutos)
     fin_funcion = datos['fecha_hora'] + timedelta(minutes=pelicula['duracion_min'])
     superpuesta = db_funciones.obtener_funcion_superpuesta(
         conexion,
         datos['id_sala'],
-        datos['fecha_hora'],
-        fin_funcion,
+        datos['fecha_hora'] - margen,
+        fin_funcion + margen,
         id_funcion,
     )
     if superpuesta is not None:
         raise ErrorAPI(
             code='funcion.schedule.conflict',
             message='Conflicto de horario',
-            description='La sala ya tiene otra funcion durante ese horario',
+            description=f'La sala ya tiene otra funcion en ese horario o a menos de {margen_minutos} minutos',
             status=409,
         )
 
