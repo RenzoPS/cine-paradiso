@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% block title %}Cartelera - Cine Paradiso{% endblock %}
@@ -24,9 +25,13 @@
             <label for="filtro-sucursal" class="filter-label">Sucursal</label>
             <div class="select-wrapper">
                 <select name="sucursal" id="filtro-sucursal" class="filter-select" onchange="this.form.submit()">
-                    {% for suc in sucursales %}
-                        <option value="{{ suc.id }}" {% if filtro_sucursal == suc.id %}selected{% endif %}>
-                            {{ suc.nombre }}
+                    <option value="" {% if not filtro_sucursal %}selected{% endif %}>
+                        Todas las sedes
+                    </option>
+                    {% for local in locales %}
+                        <option value="{{ local.id_local }}"
+                            {% if filtro_sucursal == local.id_local|string %}selected{% endif %}>
+                            {{ local.local }}
                         </option>
                     {% endfor %}
                 </select>
@@ -89,8 +94,8 @@
                 <article class="movie-card card">
                     <div class="movie-poster-wrapper">
                         {% if poster %}
-                            <img src="{{ poster }}" 
-                                 alt="Afiche de {{ pelicula.titulo }}" 
+                            <img src="{{ poster }}"
+                                 alt="Afiche de {{ pelicula.titulo }}"
                                  class="movie-poster"
                                  loading="lazy">
                         {% else %}
@@ -131,7 +136,7 @@
                         </div>
 
                         <h2 class="movie-title">
-                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel) }}">
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel, sucursal=filtro_sucursal) }}">
                                 {{ pelicula.titulo }}
                             </a>
                         </h2>
@@ -156,7 +161,7 @@
                                 </div>
                             {% endif %}
 
-                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel) }}" class="btn btn-primary btn-sm movie-action-btn">
+                            <a href="{{ url_for('cartelera.detalle', id_pelicula=id_pel, sucursal=filtro_sucursal) }}" class="btn btn-primary btn-sm movie-action-btn">
                                 Ver funciones / Horarios
                             </a>
                         </div>
@@ -185,3 +190,4 @@
     {% endif %}
 </section>
 {% endblock %}
+
