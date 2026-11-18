@@ -40,6 +40,7 @@ from .mail_plantillas import CONFIRMACION_COMPRA
 from .qr import error_qr_invalido, generar_imagen_qr, generar_token_qr, leer_token_qr
 
 ESTADOS_CON_QR = (ESTADO_PAGADA, ESTADO_USADA)
+ESTADOS_CON_FACTURA = (ESTADO_PAGADA, ESTADO_USADA, ESTADO_CANCELADA)
 
 logger = logging.getLogger(__name__)
 
@@ -94,12 +95,7 @@ def _validar_compra_confirmable(compra: dict) -> None:
     """
     La compra solo se confirma si esta pendiente y su reserva no vencio.
     """
-    vencio_por_tiempo = (
-        compra['estado'] == ESTADO_PENDIENTE
-        and compra['fecha_vencimiento'] is not None
-        and compra['fecha_vencimiento'] <= _ahora()
-    )
-    if compra['estado'] == ESTADO_VENCIDA or vencio_por_tiempo:
+    if compra['estado'] == ESTADO_VENCIDA:
         raise ErrorAPI(
             code=ERROR_CODE_COMPRA_VENCIDA,
             message='La reserva vencio',
@@ -131,31 +127,30 @@ def _armar_factura(compra: dict) -> dict:
     lista_entradas = []
     subtotal_entradas = Decimal('0')
     for entrada in entradas:
-        subtotal_entradas += entrada['precio_unitario']
+        subtotal_entradas += datos_funcion['precio']
         lista_entradas.append({
             'fila': entrada['fila'],
             'numero': entrada['numero'],
-            'precio_unitario': str(entrada['precio_unitario']),
+            'precio_unitario': str(datos_funcion['precio']),
         })
 
     lista_servicios = []
     subtotal_servicios = Decimal('0')
     for servicio in servicios:
-        subtotal = servicio['cantidad'] * servicio['precio_unitario']
+        subtotal = servicio['cantidad'] * servicio['precio']
         subtotal_servicios += subtotal
         lista_servicios.append({
             'nombre': servicio['nombre'],
             'cantidad': servicio['cantidad'],
-            'precio_unitario': str(servicio['precio_unitario']),
+            'precio_unitario': str(servicio['precio']),
             'subtotal': str(subtotal),
         })
 
     return {
         'id_compra': compra['id_compra'],
-        'numero_factura': compra['numero_factura'],
+        'numero_factura': _generar_numero_factura(compra['id_compra']),
         'estado': compra['estado'],
-        'fecha_pago': formatear_fecha_hora(compra['fecha_pago']),
-        'funcion': {                                                           
+        'funcion': {
             'pelicula': datos_funcion['titulo'],
             'sala': datos_funcion['sala'],
             'fecha_hora': datos_funcion['fecha_hora'].strftime('%d/%m/%Y %H:%M'),
@@ -164,7 +159,7 @@ def _armar_factura(compra: dict) -> dict:
         'servicios': lista_servicios,
         'subtotal_entradas': str(subtotal_entradas),
         'subtotal_servicios': str(subtotal_servicios),
-        'total': str(compra['total']),
+        'total': str(subtotal_entradas + subtotal_servicios),
         'mail_enviado': None,
     }
 
@@ -229,8 +224,7 @@ def confirmar_compra(id_compra, id_usuario: int) -> dict:
         return _armar_factura(compra)
 
     _validar_compra_confirmable(compra)
-    numero_factura = _generar_numero_factura(id_validado)
-    pagada_ahora = db_compras.actualizar_compra_pagada(id_validado, numero_factura, _ahora())
+    pagada_ahora = db_compras.actualizar_compra_pagada(id_validado)
 
     compra = db_compras.obtener_compra_por_id(id_validado)
     factura = _armar_factura(compra)
@@ -248,7 +242,7 @@ def obtener_factura(id_compra, id_usuario: int) -> dict:
     id_validado = validar_id_compra(id_compra)
     compra = _obtener_compra_propia(id_validado, id_usuario)
 
-    if not compra['numero_factura']:
+    if compra['estado'] not in ESTADOS_CON_FACTURA:
         raise ErrorAPI(
             code=ERROR_CODE_COMPRA_SIN_FACTURA,
             message='La compra no tiene factura',
@@ -262,32 +256,33 @@ def _rechazar_ingreso(code: str, message: str, description: str) -> ErrorAPI:
     return ErrorAPI(code=code, message=message, description=description, status=409)
 
 
-def _error_qr_utilizado(compra: dict) -> ErrorAPI:
+def _error_qr_utilizado() -> ErrorAPI:
     return _rechazar_ingreso(
         ERROR_CODE_QR_UTILIZADO,
         'QR ya utilizado',
-        f"El QR ya fue validado el {formatear_fecha_hora(compra['fecha_validacion'])}",
+        'El QR ya fue validado anteriormente'
     )
 
 
 def generar_qr_de_compra(id_compra: int) -> BytesIO:
     """
-    Imagen PNG del QR de una compra pagada. Genera y guarda el token la primera vez.
+    Imagen PNG del QR de una compra pagada.  El QR se genera de nuevo cada vez, no se guarda
     """
     compra = db_compras.obtener_compra_por_id(id_compra)
 
-    if compra.get('estado') not in ESTADOS_CON_QR:
+    if compra:
+        estado = compra['estado']
+    else:
+        estado = None
+    
+    if estado not in ESTADOS_CON_QR:
         raise _rechazar_ingreso(
             ERROR_CODE_QR_SIN_EMITIR,
             'La compra no tiene QR',
-            f"El QR se genera cuando la compra esta pagada. Estado actual: '{compra.get('estado')}'",
+            f"El QR se genera cuando la compra esta pagada. Estado actual: '{estado}'",
         )
 
-    if compra['qr_token'] is None:
-        compra['qr_token'] = generar_token_qr(id_compra)
-        db_compras.guardar_qr_token(id_compra, compra['qr_token'])
-
-    return generar_imagen_qr(compra['qr_token'])
+    return generar_imagen_qr(generar_token_qr(id_compra))
 
 
 def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
@@ -306,11 +301,11 @@ def validar_ingreso(body) -> dict:
     qr_token, id_funcion = validar_cuerpo_validacion_qr(body)
     compra = db_compras.obtener_compra_por_id(leer_token_qr(qr_token))
 
-    if not compra or compra['qr_token'] != qr_token:
+    if not compra :
         raise error_qr_invalido()
 
     if compra['estado'] == ESTADO_USADA:
-        raise _error_qr_utilizado(compra)
+        raise _error_qr_utilizado()
 
     if compra['estado'] == ESTADO_CANCELADA:
         raise _rechazar_ingreso(ERROR_CODE_QR_CANCELADO, 'QR cancelado', 'La compra fue cancelada')
@@ -331,8 +326,8 @@ def validar_ingreso(body) -> dict:
             f'La funcion es el {formatear_fecha_hora(fecha_hora_funcion)}',
         )
 
-    if not db_compras.marcar_compra_usada(compra['id_compra'], ahora):
-        raise _error_qr_utilizado(db_compras.obtener_compra_por_id(compra['id_compra']))
+    if not db_compras.marcar_compra_usada(compra['id_compra']):
+        raise _error_qr_utilizado()
 
     entradas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
     return {

@@ -44,7 +44,7 @@ def obtener_datos_para_mail(id_compra: int) -> dict:
     Email del cliente y datos de la funcion para armar el mail. Devuelve {} si no existe.
     """
     sql = """
-        SELECT u.email, p.titulo, sa.nombre AS sala, f.fecha_hora
+        SELECT u.email, p.titulo, sa.nombre AS sala, f.fecha_hora, f.precio
         FROM compras c
         JOIN usuarios u ON u.id_usuario = c.fk_id_usuario
         JOIN funciones f ON f.id_funcion = c.fk_id_funcion
@@ -88,35 +88,19 @@ def obtener_fecha_hora_funcion(id_funcion: int) -> datetime | None:
     return filas[0]['fecha_hora'] if filas else None
 
 
-def guardar_qr_token(id_compra: int, qr_token: str) -> None:
-    """
-    Guarda el token del QR la primera vez que se genera.
-    """
-    sql = """
-        UPDATE compras
-        SET qr_token = :qr_token
-        WHERE id_compra = :id_compra
-            AND qr_token IS NULL
-    """
-    with transaccion() as conexion:
-        conexion.execute(text(sql), {'id_compra': id_compra, 'qr_token': qr_token})
-
-
-def marcar_compra_usada(id_compra: int, fecha_validacion: datetime) -> bool:
+def marcar_compra_usada(id_compra: int) -> bool:
     """
     Pasa la compra de pagada a usada. Devuelve False si ya no estaba pagada: asi dos escaneos simultaneos no validan la misma compra.
     """
     sql = """
         UPDATE compras
-        SET estado = :estado_usada,
-            fecha_validacion = :fecha_validacion
+        SET estado = :estado_usada
         WHERE id_compra = :id_compra
             AND estado = :estado_pagada
     """
     with transaccion() as conexion:
         resultado = conexion.execute(text(sql), {
             'id_compra': id_compra,
-            'fecha_validacion': fecha_validacion,
             'estado_usada': ESTADO_USADA,
             'estado_pagada': ESTADO_PAGADA,
         })
