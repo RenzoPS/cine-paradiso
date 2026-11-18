@@ -11,46 +11,74 @@
     <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
         <a href="{{ url_for('admin.index') }}">Backoffice</a>
         <span aria-hidden="true">/</span>
+        {% if qr_token %}
+        <a href="{{ url_for('admin.simular_qr') }}">Validar ingreso</a>
+        <span aria-hidden="true">/</span>
+        <span>Verificar QR</span>
+        {% else %}
         <span>Validar ingreso</span>
+        {% endif %}
     </nav>
 
     <header class="admin-page-header">
         <p class="admin-eyebrow">Acceso a sala</p>
         <h1>Validar ingreso</h1>
-        <p>Seleccioná la función en curso para verificar la entrada escaneada en la puerta.</p>
+        {% if qr_token %}
+        <p>Confirmá la validación del código QR escaneado en la puerta de la sala.</p>
+        {% else %}
+        <p>Pegá un token QR para simular el escaneo desde la computadora sin usar la cámara del celular.</p>
+        {% endif %}
     </header>
 
+    {% if not qr_token %}
     <section class="admin-panel">
+        <h2>Simular escaneo de QR</h2>
+        <p>Ingresá el token firmado del código QR para abrir la pantalla de validación en puerta.</p>
+
+        <form
+            class="admin-search-form"
+            method="post"
+            action="{{ url_for('admin.simular_qr') }}"
+        >
+            <label for="qr-token-input">Token del QR</label>
+            <div class="admin-search-controls">
+                <input
+                    id="qr-token-input"
+                    type="text"
+                    name="qr_token"
+                    placeholder="Ej: eyJpZF9jb21wcmEiOjF9..."
+                    required
+                >
+                <button class="btn btn-primary" type="submit">
+                    Simular escaneo
+                </button>
+            </div>
+        </form>
+    </section>
+    {% else %}
+    <section class="admin-panel">
+        <div class="admin-qr-token-box">
+            <span class="admin-card-label">Token QR detectado</span>
+            <code class="admin-qr-token-code">{{ qr_token }}</code>
+        </div>
+
         <form
             class="admin-edit-form"
             method="post"
             action="{{ url_for('admin.validar_qr', qr_token=qr_token) }}"
         >
-            <label>
-                Función
-                <select name="id_funcion" required>
-                    <option value="">Seleccioná una función</option>
-                    {% for funcion in funciones %}
-                    <option
-                        value="{{ funcion.id_funcion }}"
-                        {% if funcion.id_funcion == id_funcion_seleccionada %}selected{% endif %}
-                    >
-                        {{ funcion.pelicula }} · {{ funcion.sala }} · {{ funcion.local }} · {{ funcion.fecha_hora | fecha_legible }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
-
             <div class="admin-form-actions">
-                <button class="btn btn-primary" type="submit" {% if not funciones %}disabled{% endif %}>
+                <button class="btn btn-primary" type="submit">
                     Validar ingreso
                 </button>
+                <a class="btn btn-outline" href="{{ url_for('admin.simular_qr') }}">
+                    Probar otro token
+                </a>
+                <a class="btn btn-outline" href="{{ url_for('admin.index') }}">
+                    Volver al Backoffice
+                </a>
             </div>
         </form>
-
-        {% if not funciones %}
-        <p class="admin-empty-state">No hay funciones programadas disponibles para validar.</p>
-        {% endif %}
 
         {% if resultado_valido %}
         <article class="admin-qr-resultado admin-qr-resultado-valido" role="status">
@@ -70,5 +98,6 @@
         </article>
         {% endif %}
     </section>
+    {% endif %}
 </section>
 {% endblock %}

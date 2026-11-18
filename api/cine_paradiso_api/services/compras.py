@@ -16,7 +16,6 @@ from ..constants import (
     ERROR_CODE_COMPRA_VENCIDA,
     ERROR_CODE_QR_CANCELADO,
     ERROR_CODE_QR_NO_PAGADO,
-    ERROR_CODE_QR_OTRA_FUNCION,
     ERROR_CODE_QR_OTRO_DIA,
     ERROR_CODE_QR_SIN_EMITIR,
     ERROR_CODE_QR_UTILIZADO,
@@ -296,9 +295,9 @@ def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
 
 def validar_ingreso(body) -> dict:
     """
-    Valida el QR en la puerta de la sala: tiene que ser de esa funcion y de hoy, y no estar usado ni cancelado.
+    Valida el QR en la puerta de la sala: tiene que ser de hoy, y no estar usado ni cancelado.
     """
-    qr_token, id_funcion = validar_cuerpo_validacion_qr(body)
+    qr_token = validar_cuerpo_validacion_qr(body)
     compra = db_compras.obtener_compra_por_id(leer_token_qr(qr_token))
 
     if not compra :
@@ -313,10 +312,7 @@ def validar_ingreso(body) -> dict:
     if compra['estado'] != ESTADO_PAGADA:
         raise _rechazar_ingreso(ERROR_CODE_QR_NO_PAGADO, 'Compra sin pagar', f"Estado de la compra: '{compra['estado']}'")
 
-    if compra['fk_id_funcion'] != id_funcion:
-        raise _rechazar_ingreso(ERROR_CODE_QR_OTRA_FUNCION, 'QR de otra funcion', 'El QR corresponde a otra funcion')
-
-    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(id_funcion)
+    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(compra['fk_id_funcion'])
     ahora = _ahora()
 
     if fecha_hora_funcion.date() != ahora.date():

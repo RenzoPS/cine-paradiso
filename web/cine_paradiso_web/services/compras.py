@@ -38,11 +38,11 @@ def obtener_qr_base64(id_compra, token):
     return None
 
 
-def validar_ingreso_qr(qr_token, id_funcion):
+def validar_ingreso_qr(qr_token):
     return llamar_api(
         'POST',
         'compras/validar',
-        json={'qr_token': qr_token, 'id_funcion': id_funcion},
+        json={'qr_token': qr_token},
     )
 
 

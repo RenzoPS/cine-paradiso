@@ -367,43 +367,42 @@ def editar_funcion(id_funcion):
     )
 
 
+@admin_bp.route('/validar', methods=['GET', 'POST'])
+def simular_qr():
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    if request.method == 'POST':
+        qr_token = request.form.get('qr_token', '').strip()
+        if not qr_token:
+            flash('Tenés que ingresar un token QR para simular el escaneo.', 'error')
+            return redirect(url_for('admin.simular_qr'))
+        return redirect(url_for('admin.validar_qr', qr_token=qr_token))
+
+    return render_template('admin/validar_qr.html', qr_token=None)
+
+
 @admin_bp.route('/validar/<qr_token>', methods=['GET', 'POST'])
 def validar_qr(qr_token):
     redireccion = verificar_administrador()
     if redireccion:
         return redireccion
 
-    try:
-        funciones_disponibles = listar_todas_funciones()['funciones']
-    except ApiError as error:
-        flash(error.mensaje, 'error')
-        funciones_disponibles = []
-
-    id_funcion_seleccionada = None
     resultado_valido = None
     motivo_rechazo = None
 
     if request.method == 'POST':
-        valor_funcion = request.form.get('id_funcion', '').strip()
         try:
-            id_funcion = int(valor_funcion)
-            if id_funcion < 1:
-                raise ValueError
-        except ValueError:
-            motivo_rechazo = 'Tenés que seleccionar una función válida.'
-        else:
-            id_funcion_seleccionada = id_funcion
-            try:
-                resultado_valido = validar_ingreso_qr(qr_token, id_funcion)
-            except ApiError as error:
-                motivo_rechazo = error.mensaje
+            resultado_valido = validar_ingreso_qr(qr_token)
+        except ApiError as error:
+            motivo_rechazo = error.mensaje
 
     return render_template(
         'admin/validar_qr.html',
         qr_token=qr_token,
-        funciones=funciones_disponibles,
-        id_funcion_seleccionada=id_funcion_seleccionada,
         resultado_valido=resultado_valido,
         motivo_rechazo=motivo_rechazo,
     )
+
 

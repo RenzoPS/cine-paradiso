@@ -33,6 +33,13 @@
             <span class="admin-card-action">Administrar funciones</span>
         </a>
 
+        <a class="admin-card" href="{{ url_for('admin.simular_qr') }}">
+            <span class="admin-card-label">Acceso a sala</span>
+            <h2>Validar ingreso / QR</h2>
+            <p>Verificá entradas escaneadas en puerta o simulá un escaneo con el token QR.</p>
+            <span class="admin-card-action">Validar QR</span>
+        </a>
+
         <article class="admin-card admin-card-disabled" aria-disabled="true">
             <span class="admin-card-label">Informes</span>
             <h2>Estadísticas</h2>
