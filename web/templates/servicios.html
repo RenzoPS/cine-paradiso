@@ -3,6 +3,7 @@
 {% block title %}Servicios - Cine Paradiso{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/servicios.css') }}">
 {% endblock %}
 
@@ -12,6 +13,8 @@
         <h1>Agregá servicios a tu compra</h1>
         <p>Elegí las cantidades que quieras. Podés continuar sin agregar nada.</p>
     </header>
+
+    <p class="checkout-aviso" data-segundos="{{ segundos_restantes }}">La reserva vence en <span class="checkout-contador"></span></p>
 
     <form method="post" action="{{ url_for('servicios.paso_servicios', id_compra=id_compra) }}">
         <ul class="servicios-lista">
@@ -40,13 +43,18 @@
 
         <div class="servicios-pie">
             <p>Subtotal servicios: <strong>$<span id="subtotal">{{ subtotal }}</span></strong></p>
-            <button class="btn btn-primary" type="submit">Guardar servicios</button>
+            <button class="btn btn-primary" type="submit" data-confirmar>Continuar</button>
         </div>
+    </form>
+
+    <form method="post" action="{{ url_for('compras.abandonar', id_compra=id_compra) }}">
+        <button type="submit" class="btn btn-outline">Volver</button>
     </form>
 </section>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
 <script>
     (function () {
         var tarjetas = document.querySelectorAll('.servicio-tarjeta');

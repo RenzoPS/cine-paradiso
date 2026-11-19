@@ -1,4 +1,9 @@
+from datetime import datetime
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+
+from cine_paradiso_web.constants import TZ_ARG
+from cine_paradiso_web.services.compras import obtener_compra
 
 from cine_paradiso_web.seguridad import redirigir_al_login, verificar_administrador, verificar_autenticacion
 from cine_paradiso_web.services.api_service import ApiError
@@ -137,6 +142,17 @@ def _leer_cantidades_desde_formulario(servicios: list[dict]) -> list[dict]:
     return items
 
 
+def _segundos_restantes(id_compra):
+    compra, motivo = obtener_compra(id_compra)
+    segundos = 0
+
+    if motivo is None:
+        vence_en = datetime.fromisoformat(compra['vence_en'])
+        segundos = max(0, int((vence_en - datetime.now(TZ_ARG)).total_seconds()))
+
+    return segundos
+
+
 @servicios_bp.route('/compras/<int:id_compra>/servicios', methods=['GET', 'POST'])
 def paso_servicios(id_compra):
     if not verificar_autenticacion():
@@ -150,8 +166,7 @@ def paso_servicios(id_compra):
 
         if request.method == 'POST':
             guardar_servicios_de_compra(id_compra, _leer_cantidades_desde_formulario(servicios))
-            flash('Tus servicios se guardaron correctamente.', 'success')
-            return redirect(url_for('servicios.paso_servicios', id_compra=id_compra))
+            return redirect(url_for('compras.resumen', id_compra=id_compra))
 
         elegidos = obtener_servicios_de_compra(id_compra)
     except ApiError as error:
@@ -166,4 +181,5 @@ def paso_servicios(id_compra):
         servicios=servicios,
         cantidades=cantidades,
         subtotal=elegidos['subtotal_servicios'],
+        segundos_restantes=_segundos_restantes(id_compra),
     )
