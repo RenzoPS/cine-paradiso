@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% set editando = id_servicio is not none %}
+
+{% block title %}{{ 'Editar servicio' if editando else 'Nuevo servicio' }} - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set valores = servicio or {} %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ url_for('servicios_admin.listar') }}">Servicios</a>
+        <span aria-hidden="true">/</span>
+        <span>{{ 'Editar' if editando else 'Nuevo' }}</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Catálogo{% if editando %} · ID {{ id_servicio }}{% endif %}</p>
+        <h1>{{ 'Editar servicio' if editando else 'Nuevo servicio' }}</h1>
+        <p>Completá los datos que va a ver el cliente al agregar el servicio a su compra.</p>
+    </header>
+
+    <section class="admin-panel">
+        <form class="admin-edit-form" method="post"
+              action="{{ url_for('servicios_admin.editar', id_servicio=id_servicio) if editando else url_for('servicios_admin.nuevo') }}">
+            <label>
+                Nombre
+                <input type="text" name="nombre" maxlength="80" required
+                       placeholder="Combo pochoclos + gaseosa" value="{{ valores.nombre or '' }}">
+            </label>
+
+            <label>
+                Descripción
+                <textarea name="descripcion" rows="3" maxlength="255"
+                          placeholder="Qué incluye el servicio">{{ valores.descripcion or '' }}</textarea>
+            </label>
+
+            <label>
+                Precio
+                <input type="number" name="precio" min="0" step="0.01" required
+                       placeholder="3500.00" value="{{ valores.precio or '' }}">
+            </label>
+
+            <label>
+                <input type="checkbox" name="activo"
+                       {% if valores.activo is not defined or valores.activo %}checked{% endif %}>
+                Activo: se ofrece al comprar
+            </label>
+
+            <div class="admin-row-actions">
+                <button class="btn btn-primary" type="submit">Guardar</button>
+                <a class="btn btn-outline" href="{{ url_for('servicios_admin.listar') }}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</section>
+{% endblock %}

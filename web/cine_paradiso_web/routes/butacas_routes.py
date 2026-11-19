@@ -25,7 +25,7 @@ def butacas(id_funcion: int):
         try:
             ids_butacas = [int(id_b) for id_b in butacas_seleccionadas]
             compra = crear_compra_butacas(id_funcion, ids_butacas)
-            return redirect(url_for('compras.resumen', id_compra=compra['id_compra']))
+            return redirect(url_for('servicios.paso_servicios', id_compra=compra['id_compra']))
         except ApiError as error:
             flash(error.mensaje, 'error')
             return redirect(url_for('butacas.butacas', id_funcion=id_funcion))

@@ -41,5 +41,4 @@ INSERT INTO usuarios (id_usuario, nombre, apellido, email, contrasena_hash, rol)
 INSERT INTO servicios (id_servicio, nombre, descripcion, precio, activo) VALUES
 (1, 'Combo pochoclos + gaseosa', 'Balde de pochoclos grande y gaseosa de 1 L', 3500.00, TRUE),
 (2, 'Chocolate', 'Barra de chocolate semiamargo de 100 g', 1500.00, TRUE),
-(3, 'Estacionamiento', 'Estacionamiento cubierto durante la función', 2500.00, TRUE),
-(4, 'Acceso VIP', 'Sala de espera VIP con sillones y bebida de cortesía', 6000.00, TRUE);
+(3, 'Estacionamiento', 'Estacionamiento cubierto durante la función', 2500.00, TRUE);

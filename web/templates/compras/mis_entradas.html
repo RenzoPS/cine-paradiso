@@ -44,11 +44,15 @@
                         <p class="mis-entradas-meta">{{ compra.funcion.fecha_hora | fecha_legible }}</p>
                         {% if compra.butacas %}
                         <p class="mis-entradas-butacas">
-                            Fila {{ compra.butacas[0].fila }} - asientos
-                            {% for b in compra.butacas %}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            Butacas: {% for b in compra.butacas %}{{ b.fila }}{{ b.numero }}{% if not loop.last %}, {% endif %}{% endfor %}
                         </p>
                         {% endif %}
-                        <p class="mis-entradas-total">Subtotal entradas: $ {{ compra.subtotal_entradas }}</p>
+                        {% if compra.servicios %}
+                        <p class="mis-entradas-butacas">
+                            Servicios: {% for s in compra.servicios %}{{ s.nombre }} x{{ s.cantidad }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </p>
+                        {% endif %}
+                        <p class="mis-entradas-total">Total: $ {{ compra.total }}</p>
                     </div>
                 </div>
 

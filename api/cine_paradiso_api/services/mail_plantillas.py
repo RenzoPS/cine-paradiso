@@ -26,7 +26,11 @@ CONFIRMACION_COMPRA = """\
                                 <hr>
                                 <table width="100%" cellpadding="8" border="0">
                                     <tr><td>Entradas x{{ cantidad_entradas }}</td><td align="right">$ {{ total_entradas }}</td></tr>
+                                    {% for servicio in servicios %}
+                                    <tr><td>{{ servicio.nombre }} x{{ servicio.cantidad }}</td><td align="right">$ {{ servicio.subtotal }}</td></tr>
+                                    {% else %}
                                     <tr><td>Servicios</td><td align="right">$ {{ total_servicios }}</td></tr>
+                                    {% endfor %}
                                     <tr><td><b>TOTAL – Factura N° {{ numero_factura }}</b></td><td align="right"><b>$ {{ total }}</b></td></tr>
                                 </table>
                                 <hr>

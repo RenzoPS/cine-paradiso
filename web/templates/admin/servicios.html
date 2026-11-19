@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Servicios - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <span>Servicios</span>
+    </nav>
+
+    <header class="admin-page-header admin-page-header-row">
+        <div>
+            <p class="admin-eyebrow">Catálogo</p>
+            <h1>Servicios</h1>
+            <p>Administrá los servicios que se pueden agregar a una compra.</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('servicios_admin.nuevo') }}">Nuevo servicio</a>
+    </header>
+
+    <section class="admin-panel" aria-labelledby="servicios-heading">
+        <div class="admin-panel-header">
+            <div>
+                <h2 id="servicios-heading">Servicios cargados</h2>
+                <p>Dar de baja un servicio lo oculta de la compra, pero se conserva en el historial.</p>
+            </div>
+            <span class="admin-status">Mostrando {{ servicios | length }}</span>
+        </div>
+
+        <div class="admin-table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Servicio</th>
+                        <th scope="col">Precio</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for servicio in servicios %}
+                    <tr>
+                        <td>
+                            <strong>{{ servicio.nombre }}</strong>
+                            {% if servicio.descripcion %}
+                            <span class="admin-movie-meta">{{ servicio.descripcion }}</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ servicio.precio }}</td>
+                        <td>
+                            {% if servicio.activo %}
+                            <span class="admin-status admin-status-active">Activo</span>
+                            {% else %}
+                            <span class="admin-status admin-status-inactive">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="admin-row-actions">
+                                <a class="btn btn-sm btn-outline"
+                                   href="{{ url_for('servicios_admin.editar', id_servicio=servicio.id_servicio) }}">
+                                    Editar
+                                </a>
+                                {% if servicio.activo %}
+                                <form method="post"
+                                      action="{{ url_for('servicios_admin.baja', id_servicio=servicio.id_servicio) }}">
+                                    <button class="btn btn-sm btn-outline" type="submit">Dar de baja</button>
+                                </form>
+                                {% else %}
+                                <form method="post"
+                                      action="{{ url_for('servicios_admin.alta', id_servicio=servicio.id_servicio) }}">
+                                    <button class="btn btn-sm btn-outline" type="submit">Dar de alta</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td class="admin-empty-cell" colspan="4">
+                            Todavía no hay servicios. Creá el primero con "Nuevo servicio".
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
