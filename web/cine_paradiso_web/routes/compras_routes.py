@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from cine_paradiso_web.constants import ESTADO_PENDIENTE, HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE, TZ_ARG
+from cine_paradiso_web.constants import ESTADO_PENDIENTE, HORAS_LIMITE_CANCELACION, TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.compras import (
     abandonar_compra,
@@ -12,6 +12,7 @@ from cine_paradiso_web.services.compras import (
     listar_compras_usuario,
     obtener_compra,
     obtener_qr_base64,
+    segundos_para_vencer,
 )
 from cine_paradiso_web.services.servicios_service import obtener_servicios_de_compra
 
@@ -63,8 +64,7 @@ def resumen(id_compra):
     funcion = compra['funcion']
     funcion['fecha_hora'] = datetime.fromisoformat(funcion['fecha_hora']).strftime('%d/%m/%Y %H:%M')
 
-    vence_en = datetime.fromisoformat(compra['vence_en'])
-    segundos_restantes = max(0, int((vence_en - datetime.now(TZ_ARG)).total_seconds()))
+    segundos_restantes = segundos_para_vencer(compra)
 
     servicios, total = _servicios_y_total(id_compra, compra['subtotal_entradas'])
 

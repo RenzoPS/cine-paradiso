@@ -42,7 +42,11 @@
         </ul>
 
         <div class="servicios-pie">
-            <p>Subtotal servicios: <strong>$<span id="subtotal">{{ subtotal }}</span></strong></p>
+            <div data-entradas="{{ subtotal_entradas }}">
+                <p>Entradas: <strong>${{ subtotal_entradas }}</strong></p>
+                <p>Servicios: <strong>$<span id="subtotal">{{ subtotal }}</span></strong></p>
+                <p>Total: <strong>$<span id="total">{{ total }}</span></strong></p>
+            </div>
             <button class="btn btn-primary" type="submit" data-confirmar>Continuar</button>
         </div>
     </form>
@@ -59,6 +63,8 @@
     (function () {
         var tarjetas = document.querySelectorAll('.servicio-tarjeta');
         var subtotal = document.getElementById('subtotal');
+        var totalCompra = document.getElementById('total');
+        var entradas = parseFloat(document.querySelector('[data-entradas]').dataset.entradas);
 
         function recalcular() {
             var total = 0;
@@ -67,6 +73,7 @@
                 total += cantidad * parseFloat(tarjeta.dataset.precio);
             });
             subtotal.textContent = total.toFixed(2);
+            totalCompra.textContent = (entradas + total).toFixed(2);
         }
 
         tarjetas.forEach(function (tarjeta) {

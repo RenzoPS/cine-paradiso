@@ -1,9 +1,9 @@
-from datetime import datetime
+from decimal import Decimal
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from cine_paradiso_web.constants import TZ_ARG
-from cine_paradiso_web.services.compras import obtener_compra
+from cine_paradiso_web.constants import ESTADO_PENDIENTE
+from cine_paradiso_web.services.compras import obtener_compra, segundos_para_vencer
 
 from cine_paradiso_web.seguridad import redirigir_al_login, verificar_administrador, verificar_autenticacion
 from cine_paradiso_web.services.api_service import ApiError
@@ -142,15 +142,7 @@ def _leer_cantidades_desde_formulario(servicios: list[dict]) -> list[dict]:
     return items
 
 
-def _segundos_restantes(id_compra):
-    compra, motivo = obtener_compra(id_compra)
-    segundos = 0
-
-    if motivo is None:
-        vence_en = datetime.fromisoformat(compra['vence_en'])
-        segundos = max(0, int((vence_en - datetime.now(TZ_ARG)).total_seconds()))
-
-    return segundos
+MENSAJE_COMPRA_NO_PENDIENTE = 'Esta compra ya no está pendiente: no se pueden cambiar sus servicios'
 
 
 @servicios_bp.route('/compras/<int:id_compra>/servicios', methods=['GET', 'POST'])
@@ -158,6 +150,12 @@ def paso_servicios(id_compra):
     if not verificar_autenticacion():
         flash('Debes iniciar sesión para elegir servicios.', 'warning')
         return redirigir_al_login()
+
+    compra, motivo = obtener_compra(id_compra)
+
+    if motivo is not None or compra['estado'] != ESTADO_PENDIENTE:
+        flash(motivo or MENSAJE_COMPRA_NO_PENDIENTE, 'error')
+        return redirect(url_for('compras.listar'))
 
     servicios = []
 
@@ -181,5 +179,7 @@ def paso_servicios(id_compra):
         servicios=servicios,
         cantidades=cantidades,
         subtotal=elegidos['subtotal_servicios'],
-        segundos_restantes=_segundos_restantes(id_compra),
+        subtotal_entradas=compra['subtotal_entradas'],
+        total=f"{Decimal(str(compra['subtotal_entradas'])) + Decimal(str(elegidos['subtotal_servicios'])):.2f}",
+        segundos_restantes=segundos_para_vencer(compra),
     )

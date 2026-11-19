@@ -2044,7 +2044,10 @@ components:
         - fecha_hora
         - funcion
         - butacas
+        - servicios
         - subtotal_entradas
+        - subtotal_servicios
+        - total
         - puede_cancelar
         - tiene_qr
       properties:
@@ -2111,9 +2114,34 @@ components:
               numero:
                 type: integer
                 example: 1
+        servicios:
+          type: array
+          description: Servicios elegidos en la compra.
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Chocolate
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1500.00'
+              subtotal:
+                type: string
+                example: '3000.00'
         subtotal_entradas:
           type: string
           example: '10000.00'
+        subtotal_servicios:
+          type: string
+          example: '3000.00'
+        total:
+          type: string
+          description: Entradas más servicios.
+          example: '13000.00'
         puede_cancelar:
           type: boolean
           description: "`true` si la compra está pagada y faltan al menos `HORAS_LIMITE_CANCELACION` horas para la función."
