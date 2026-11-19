@@ -12,32 +12,31 @@
         <div class="screen-container">
             <div class="screen-box">PANTALLA</div>
         </div>
-        
-        <form id="form-butacas" method="POST" action="{{ url_for('butacas.butacas') }}">
+
+        <form id="form-butacas" method="POST" action="{{ url_for('butacas.butacas', id_funcion=id_funcion) }}">
             <div class="seating-grid">
-                {% set contador = namespace(id=1) %}
-                {% for fila in ['A', 'B', 'C', 'D'] %}
+                {% for fila_info in filas %}
                 <div class="seat-row">
-                    <span class="row-label">{{ fila }}</span>
-                    {% for numero in range(1, 8) %}
-                        {% set id_butaca_simulado = contador.id %}
-                        {% set esta_ocupada = id_butaca_simulado in [3, 11] %}                      
+                    <span class="row-label">{{ fila_info.fila }}</span>
+                    {% for butaca in fila_info.butacas %}
                         <div class="seat-label-wrapper">
-                            <input type="checkbox" 
-                                   name="butacas" 
-                                   value="{{ id_butaca_simulado }}" 
-                                   id="seat-{{ id_butaca_simulado }}" 
+                            <input type="checkbox"
+                                   name="butacas"
+                                   value="{{ butaca.id_butaca }}"
+                                   id="seat-{{ butaca.id_butaca }}"
                                    class="seat-checkbox"
-                                   {% if esta_ocupada %}disabled{% endif %}>
-                            
-                            <label for="seat-{{ id_butaca_simulado }}" class="seat-label">
-                                {{ numero }}
+                                   {% if butaca.ocupada %}disabled{% endif %}>
+
+                            <label for="seat-{{ butaca.id_butaca }}" class="seat-label">
+                                {{ butaca.numero }}
                             </label>
                         </div>
-                        
-                        {% set contador.id = contador.id + 1 %}
                     {% endfor %}
                 </div>
+                {% else %}
+                <p style="color: var(--color-text-muted); text-align: center;">
+                    No hay butacas cargadas para esta función.
+                </p>
                 {% endfor %}
             </div>
 
@@ -51,28 +50,27 @@
 
     <aside class="sidebar-summary">
         <h3 class="summary-title">Resumen de Compra:</h3>
-        
+
         <div class="movie-summary-card">
+            {% if funcion.poster_url %}
+            <img src="{{ funcion.poster_url }}" alt="Afiche" class="movie-poster-placeholder" style="object-fit: cover;">
+            {% else %}
             <div class="movie-poster-placeholder">
                 <span class="poster-icon">🎬</span>
             </div>
-            
+            {% endif %}
+
             <div class="movie-info-details">
-                <h4>Sombras de Medianoche</h4>
-                <p class="movie-meta-tag">Sala 1</p>
-                <p><strong>FECHA:</strong><br><span>Hoy (26/oct)</span></p>
-                <p><strong>HORA:</strong><br><span>18:00 horas</span></p>
-                <div class="badge-row">
-                    <span class="badge">13</span>
-                    <span class="badge">120 min</span>
-                    <span class="badge">Drama</span>
-                </div>
+                <h4>{{ funcion.pelicula or funcion.titulo or 'Función seleccionada' }}</h4>
+                <p class="movie-meta-tag">{{ funcion.sala or 'Sala' }}</p>
+                <p><strong>FECHA Y HORA:</strong><br><span>{{ (funcion.fecha_hora | fecha_legible) if funcion.fecha_hora else '-' }}</span></p>
+                <p><strong>DISPONIBLES:</strong><br><span>{{ disponibles }} / {{ capacidad }}</span></p>
             </div>
         </div>
 
         <div class="price-breakdown">
-            <p class="ticket-count">X 1 Una Entrada</p>
-            <p class="subtotal-label">Subtotal: <span class="price-amount">16.000,00 $</span></p>
+            <p class="ticket-count">Precio por entrada:</p>
+            <p class="subtotal-label"><span class="price-amount">$ {{ funcion.precio or '0.00' }}</span></p>
         </div>
 
         <div class="action-container">
@@ -81,6 +79,5 @@
             </button>
         </div>
     </aside>
-
 </div>
 {% endblock %}
