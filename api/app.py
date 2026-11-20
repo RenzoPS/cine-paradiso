@@ -6,6 +6,7 @@ from cine_paradiso_api import repositories
 from cine_paradiso_api.constants import API_PORT, BASE_URL
 from cine_paradiso_api.routes.butacas import butacas_bp
 from cine_paradiso_api.routes.compras import compras_bp
+from cine_paradiso_api.routes.dashboard import dashboard_bp
 from cine_paradiso_api.routes.funciones import funciones_bp
 from cine_paradiso_api.routes.locales import locales_bp
 from cine_paradiso_api.routes.peliculas import peliculas_bp
@@ -23,6 +24,7 @@ repositories.init_app(app)
 
 app.register_blueprint(butacas_bp, url_prefix=BASE_URL)
 app.register_blueprint(compras_bp, url_prefix=BASE_URL)
+app.register_blueprint(dashboard_bp, url_prefix=BASE_URL)
 app.register_blueprint(funciones_bp, url_prefix=BASE_URL)
 app.register_blueprint(locales_bp, url_prefix=BASE_URL)
 app.register_blueprint(peliculas_bp, url_prefix=BASE_URL)

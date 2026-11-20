@@ -1558,6 +1558,29 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /dashboard:
+    get:
+      summary: "Indicadores del backoffice"
+      description: "Devuelve en una sola respuesta la ocupación por función y por película, las ventas por género, las franjas horarias más vendidas y las cancelaciones. Una venta es una entrada de una compra `pagada` o `usada`; las pendientes no cuentan. Requiere rol Admin."
+      operationId: get_dashboard
+      tags:
+        - Dashboard
+      security:
+        - TokenSesion: []
+      responses:
+        '200':
+          description: Indicadores calculados a partir de las compras y entradas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     TokenSesion:
@@ -2227,6 +2250,111 @@ components:
           nullable: true
           description: |
             `true` si el mail se envió y `false` si falló. `null` si no se intentó enviar (la compra ya estaba pagada, o es la consulta de la factura).
+    Dashboard:
+      type: object
+      required:
+        - ocupacion_por_funcion
+        - ocupacion_por_pelicula
+        - ventas_por_genero
+        - franjas_horarias
+        - cancelaciones
+      properties:
+        ocupacion_por_funcion:
+          type: array
+          items:
+            type: object
+            properties:
+              id_funcion:
+                type: integer
+                example: 3
+              pelicula:
+                type: string
+                example: Pelicula Demo
+              sala:
+                type: string
+                example: Sala 2
+              local:
+                type: string
+                example: Cine Paradiso - Centro
+              fecha_hora:
+                type: string
+                example: '2026-11-19T20:00:00-03:00'
+              vendidas:
+                type: integer
+                example: 4
+              capacidad:
+                type: integer
+                example: 60
+              porcentaje:
+                type: number
+                example: 6.7
+        ocupacion_por_pelicula:
+          type: array
+          items:
+            type: object
+            properties:
+              id_pelicula:
+                type: integer
+                example: 1
+              pelicula:
+                type: string
+                example: Pelicula Demo
+              funciones:
+                type: integer
+                example: 3
+              vendidas:
+                type: integer
+                example: 6
+              capacidad:
+                type: integer
+                example: 226
+              porcentaje:
+                type: number
+                example: 2.7
+        ventas_por_genero:
+          type: array
+          description: Solo géneros con ventas, de mayor a menor. Las películas sin género figuran como `Sin genero`.
+          items:
+            type: object
+            properties:
+              genero:
+                type: string
+                example: Drama
+              entradas:
+                type: integer
+                example: 6
+        franjas_horarias:
+          type: array
+          description: Entradas vendidas por hora de inicio de la función, de mayor a menor.
+          items:
+            type: object
+            properties:
+              hora:
+                type: string
+                example: '20:00'
+              entradas:
+                type: integer
+                example: 4
+        cancelaciones:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 2
+            por_pelicula:
+              type: array
+              items:
+                type: object
+                properties:
+                  id_pelicula:
+                    type: integer
+                    example: 1
+                  pelicula:
+                    type: string
+                    example: Pelicula Demo
+                  cancelaciones:
+                    type: integer
+                    example: 1
     ErrorResponse:
       type: object
       required:
