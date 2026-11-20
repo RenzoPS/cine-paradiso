@@ -69,8 +69,13 @@ def get_factura_compra(id_compra):
 
 @compras_bp.route('/compras/<id_compra>/qr', methods=['GET'])
 def get_qr_compra(id_compra):
-    id_usuario = verificar_autenticacion()['id_usuario']
-    return send_file(obtener_qr_de_compra(id_compra, id_usuario), mimetype='image/png')
+    datos_token = verificar_autenticacion()
+    imagen_qr = obtener_qr_de_compra(
+        id_compra,
+        id_usuario=datos_token['id_usuario'],
+        rol=datos_token.get('rol'),
+    )
+    return send_file(imagen_qr, mimetype='image/png')
 
 
 @compras_bp.route('/compras/validar', methods=['POST'])

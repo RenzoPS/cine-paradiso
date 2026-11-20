@@ -2,10 +2,12 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from cine_paradiso_web.constants import TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.seguridad import verificar_administrador
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.compras import (
     listar_compras_validacion_admin,
+    obtener_qr_base64,
     validar_ingreso_por_id_compra,
     validar_ingreso_qr,
 )
@@ -399,6 +401,13 @@ def ingresar_qr():
     except ApiError as error:
         flash(error.mensaje, 'error')
         compras = []
+
+    token = request.cookies.get(TOKEN_COOKIE_NOMBRE)
+    for compra in compras:
+        if compra.get('estado') in ('pagada', 'usada') and token:
+            compra['qr_imagen'] = obtener_qr_base64(compra['id_compra'], token)
+        else:
+            compra['qr_imagen'] = None
 
     return render_template(
         'admin/validar_qr.html',

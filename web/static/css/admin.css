@@ -354,3 +354,17 @@ a.admin-card:focus-visible {
     }
 }
 
+
+.admin-qr-miniatura {
+    display: block;
+    width: 64px;
+    height: 64px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    object-fit: contain;
+}
+
+.admin-qr-sin-imagen {
+    color: var(--color-text-muted);
+}

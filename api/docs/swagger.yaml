@@ -1230,7 +1230,7 @@ paths:
   /compras/{id_compra}/qr:
     get:
       summary: "Obtener el QR de una compra"
-      description: "Devuelve la imagen PNG del código QR de una compra propia que ya fue pagada o usada."
+      description: "Devuelve la imagen PNG del código QR de una compra propia (cliente) o de cualquier compra (rol Admin) que ya fue pagada o usada."
       operationId: get_qr_compra
       tags:
         - Compras
