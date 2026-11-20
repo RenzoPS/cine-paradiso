@@ -62,6 +62,7 @@ ERROR_CODE_INVALID_FORMAT    = 'invalid.format'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
 ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
 ERROR_CODE_UNKNOWN_FIELD     = 'unknown.field'
+ERROR_CODE_NOT_FOUND = 'not.found'
 
 
 

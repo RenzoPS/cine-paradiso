@@ -631,6 +631,271 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /servicios:
+    get:
+      summary: Listar servicios
+      description: |
+        Devuelve los servicios que se pueden agregar a una compra, paginados y ordenados por nombre.
+        Por defecto lista solo los activos; con `activo=false` lista los dados de baja.
+        Es público: no requiere sesión. Si no hay coincidencias responde `200` con `servicios: []`.
+      operationId: get_servicios
+      tags:
+        - Servicios
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: activo
+          in: query
+          description: Filtra por estado. Por defecto `true`.
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Página de servicios.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosPaginados'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Crear un servicio
+      description: Requiere una sesión válida con rol Admin.
+      operationId: post_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioEntrada'
+      responses:
+        '201':
+          description: Servicio creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /servicios/{id_servicio}:
+    get:
+      summary: Obtener un servicio
+      description: Público. Devuelve el servicio aunque esté dado de baja.
+      operationId: get_servicio
+      tags:
+        - Servicios
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      responses:
+        '200':
+          description: El servicio.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Reemplazar un servicio
+      description: |
+        Reemplaza todos los campos del servicio. Para volver a ofrecer un servicio dado de baja se envía `activo: true`.
+        Requiere una sesión válida con rol Admin.
+      operationId: put_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioEntrada'
+      responses:
+        '200':
+          description: Servicio actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Dar de baja un servicio
+      description: |
+        Baja lógica: pone `activo` en `false`. El servicio deja de ofrecerse en nuevas compras, pero no se elimina,
+        por lo que las compras anteriores lo conservan. Repetir la solicitud responde con el estado actual.
+        Requiere una sesión válida con rol Admin.
+      operationId: delete_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      responses:
+        '200':
+          description: Servicio dado de baja, o que ya lo estaba.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /compras/{id_compra}/servicios:
+    get:
+      summary: Ver los servicios de una compra
+      description: Devuelve los servicios elegidos y su subtotal. Requiere una sesión de cliente dueño de la compra.
+      operationId: get_servicios_de_compra
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdCompra'
+      responses:
+        '200':
+          description: Servicios de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosDeCompra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: La sesión no es de un cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: La compra no existe o es de otro usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Definir los servicios de una compra
+      description: |
+        Reemplaza los servicios de la compra por la lista enviada (una lista vacía los quita todos).
+        Solo se puede mientras la compra esté `pendiente`. Cada servicio debe estar activo.
+        El precio no se guarda en la compra: el total se calcula con el precio vigente.
+        Requiere una sesión de cliente dueño de la compra.
+      operationId: put_servicios_de_compra
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdCompra'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - servicios
+              properties:
+                servicios:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id_servicio
+                      - cantidad
+                    properties:
+                      id_servicio:
+                        type: integer
+                        minimum: 1
+                        example: 1
+                      cantidad:
+                        type: integer
+                        minimum: 1
+                        maximum: 20
+                        example: 2
+      responses:
+        '200':
+          description: Servicios guardados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosDeCompra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: La sesión no es de un cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: La compra no existe o es de otro usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pendiente, o un servicio no existe o está dado de baja.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /compras:
     get:
       summary: "Listar las compras del cliente"
@@ -965,7 +1230,7 @@ paths:
   /compras/{id_compra}/qr:
     get:
       summary: "Obtener el QR de una compra"
-      description: "Devuelve la imagen PNG del código QR de una compra propia que ya fue pagada o usada."
+      description: "Devuelve la imagen PNG del código QR de una compra propia (cliente) o de cualquier compra (rol Admin) que ya fue pagada o usada."
       operationId: get_qr_compra
       tags:
         - Compras
@@ -1342,6 +1607,22 @@ components:
         type: integer
         minimum: 0
         default: 0
+    IdServicio:
+      name: id_servicio
+      in: path
+      required: true
+      description: Identificador interno positivo del servicio.
+      schema:
+        type: integer
+        minimum: 1
+    IdCompra:
+      name: id_compra
+      in: path
+      required: true
+      description: Identificador interno positivo de la compra.
+      schema:
+        type: integer
+        minimum: 1
   responses:
     BadRequest:
       description: Parámetros inválidos.
@@ -1784,9 +2065,13 @@ components:
         - id_compra
         - estado
         - fecha_hora
+        - vence_en
         - funcion
         - butacas
+        - servicios
         - subtotal_entradas
+        - subtotal_servicios
+        - total
         - puede_cancelar
         - tiene_qr
       properties:
@@ -1801,6 +2086,12 @@ components:
           type: string
           format: date-time
           example: '2026-11-17T12:17:42-03:00'
+        vence_en:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fin de la reserva. Solo mientras la compra está pendiente; en otro estado es `null`.
+          example: '2026-11-17T12:27:42-03:00'
         funcion:
           type: object
           required:
@@ -1853,9 +2144,34 @@ components:
               numero:
                 type: integer
                 example: 1
+        servicios:
+          type: array
+          description: Servicios elegidos en la compra.
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Chocolate
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1500.00'
+              subtotal:
+                type: string
+                example: '3000.00'
         subtotal_entradas:
           type: string
           example: '10000.00'
+        subtotal_servicios:
+          type: string
+          example: '3000.00'
+        total:
+          type: string
+          description: Entradas más servicios.
+          example: '13000.00'
         puede_cancelar:
           type: boolean
           description: "`true` si la compra está pagada y faltan al menos `HORAS_LIMITE_CANCELACION` horas para la función."
@@ -2062,3 +2378,96 @@ components:
                 type: string
               description:
                 type: string
+    Servicio:
+      type: object
+      required:
+        - id_servicio
+        - nombre
+        - descripcion
+        - precio
+        - activo
+      properties:
+        id_servicio:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Combo pochoclos + gaseosa
+        descripcion:
+          type: string
+          nullable: true
+          example: Balde de pochoclos grande y gaseosa de 1 L
+        precio:
+          type: string
+          description: Monto decimal con dos decimales.
+          example: '3500.00'
+        activo:
+          type: boolean
+    ServicioEntrada:
+      type: object
+      required:
+        - nombre
+        - precio
+      properties:
+        nombre:
+          type: string
+          maxLength: 80
+        descripcion:
+          type: string
+          maxLength: 255
+          nullable: true
+        precio:
+          type: number
+          minimum: 0
+          example: 3500
+        activo:
+          type: boolean
+          default: true
+    ServiciosPaginados:
+      type: object
+      required:
+        - servicios
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        servicios:
+          type: array
+          items:
+            $ref: '#/components/schemas/Servicio'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    ServiciosDeCompra:
+      type: object
+      required:
+        - id_compra
+        - servicios
+        - subtotal_servicios
+      properties:
+        id_compra:
+          type: integer
+        servicios:
+          type: array
+          items:
+            type: object
+            properties:
+              id_servicio:
+                type: integer
+              nombre:
+                type: string
+              cantidad:
+                type: integer
+              precio_unitario:
+                type: string
+              subtotal:
+                type: string
+        subtotal_servicios:
+          type: string
+          example: '7000.00'

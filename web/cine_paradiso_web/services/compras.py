@@ -1,8 +1,9 @@
 import base64
+from datetime import datetime
 
 import requests
 
-from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE
+from cine_paradiso_web.constants import API_TIMEOUT_SEGUNDOS, API_URL, TOKEN_COOKIE_NOMBRE, TZ_ARG
 from cine_paradiso_web.services.api_service import ApiError, llamar_api
 
 MOTIVO_POR_DEFECTO = 'No pudimos confirmar tu compra. Intentá de nuevo en unos minutos'
@@ -40,6 +41,15 @@ def abandonar_compra(id_compra):
     except ApiError as error:
         return False, error.mensaje
     return True, None
+
+
+def segundos_para_vencer(compra: dict) -> int:
+    """
+    Segundos que le quedan a la reserva de una compra pendiente, para la cuenta regresiva.
+    """
+    vence_en = datetime.fromisoformat(compra['vence_en'])
+
+    return max(0, int((vence_en - datetime.now(TZ_ARG)).total_seconds()))
 
 
 def obtener_compra(id_compra):

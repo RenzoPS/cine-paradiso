@@ -10,6 +10,7 @@ from cine_paradiso_api.routes.dashboard import dashboard_bp
 from cine_paradiso_api.routes.funciones import funciones_bp
 from cine_paradiso_api.routes.locales import locales_bp
 from cine_paradiso_api.routes.peliculas import peliculas_bp
+from cine_paradiso_api.routes.servicios import servicios_bp
 from cine_paradiso_api.routes.auth import auth_bp
 from cine_paradiso_api.routes.usuarios import usuarios_bp
 from cine_paradiso_api.utils import ErrorAPI, construir_error_api
@@ -27,6 +28,7 @@ app.register_blueprint(dashboard_bp, url_prefix=BASE_URL)
 app.register_blueprint(funciones_bp, url_prefix=BASE_URL)
 app.register_blueprint(locales_bp, url_prefix=BASE_URL)
 app.register_blueprint(peliculas_bp, url_prefix=BASE_URL)
+app.register_blueprint(servicios_bp, url_prefix=BASE_URL)
 app.register_blueprint(auth_bp, url_prefix=BASE_URL)
 app.register_blueprint(usuarios_bp, url_prefix=BASE_URL)
 

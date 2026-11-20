@@ -30,6 +30,7 @@ from ..constants import (
     HORAS_LIMITE_CANCELACION,
     MINUTOS_APERTURA_SALA,
     MINUTOS_RESERVA,
+    ROL_ADMIN,
     TZ_ARG,
     WEB_URL,
 )
@@ -120,12 +121,31 @@ def _generar_numero_factura(id_compra: int) -> str:
     """
     return f'{id_compra:08d}'
 
+def _armar_servicios(id_compra: int) -> tuple[list[dict], Decimal]:
+    """
+    Devuelve los servicios de la compra con su subtotal y el subtotal de todos los servicios.
+    """
+    lista_servicios = []
+    subtotal_servicios = Decimal('0')
+    for servicio in db_compras.obtener_servicios_de_compra(id_compra):
+        subtotal = servicio['cantidad'] * servicio['precio']
+        subtotal_servicios += subtotal
+        lista_servicios.append({
+            'nombre': servicio['nombre'],
+            'cantidad': servicio['cantidad'],
+            'precio_unitario': str(servicio['precio']),
+            'subtotal': str(subtotal),
+        })
+
+    return lista_servicios, subtotal_servicios
+
+
 def _armar_factura(compra: dict) -> dict:
     """
     Arma la factura de la compra: entradas, servicios y subtotales.
     """
     entradas = db_compras.obtener_entradas_de_compra(compra['id_compra'])
-    servicios = db_compras.obtener_servicios_de_compra(compra['id_compra'])
+    lista_servicios, subtotal_servicios = _armar_servicios(compra['id_compra'])
     datos_funcion = db_compras.obtener_datos_para_mail(compra['id_compra'])
 
     lista_entradas = []
@@ -136,18 +156,6 @@ def _armar_factura(compra: dict) -> dict:
             'fila': entrada['fila'],
             'numero': entrada['numero'],
             'precio_unitario': str(datos_funcion['precio']),
-        })
-
-    lista_servicios = []
-    subtotal_servicios = Decimal('0')
-    for servicio in servicios:
-        subtotal = servicio['cantidad'] * servicio['precio']
-        subtotal_servicios += subtotal
-        lista_servicios.append({
-            'nombre': servicio['nombre'],
-            'cantidad': servicio['cantidad'],
-            'precio_unitario': str(servicio['precio']),
-            'subtotal': str(subtotal),
         })
 
     return {
@@ -198,6 +206,7 @@ def _enviar_mail_confirmacion(compra: dict, factura: dict) -> bool:
             'butacas': _texto_butacas(factura['entradas']),
             'cantidad_entradas': len(factura['entradas']),
             'total_entradas': factura['subtotal_entradas'],
+            'servicios': factura['servicios'],
             'total_servicios': factura['subtotal_servicios'],
             'total': factura['total'],
             'numero_factura': factura['numero_factura'],
@@ -289,12 +298,18 @@ def generar_qr_de_compra(id_compra: int) -> BytesIO:
     return generar_imagen_qr(generar_token_qr(id_compra))
 
 
-def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
+def obtener_qr_de_compra(id_compra, id_usuario: int, rol: str | None = None) -> BytesIO:
     """
-    QR de una compra del usuario logueado.
+    QR de una compra. El cliente solo accede a sus compras; el admin a cualquiera.
     """
     id_validado = validar_id_compra(id_compra)
-    _obtener_compra_propia(id_validado, id_usuario)
+
+    if rol == ROL_ADMIN:
+        if db_compras.obtener_compra_por_id(id_validado) is None:
+            raise _error_compra_no_encontrada(id_validado)
+    else:
+        _obtener_compra_propia(id_validado, id_usuario)
+
     return generar_qr_de_compra(id_validado)
 
 
@@ -551,11 +566,14 @@ def listar_compras(args, id_usuario: int) -> dict:
             and fecha_hora_funcion - ahora >= limite_cancelacion
         )
         tiene_qr = estado in ESTADOS_CON_QR
+        subtotal_entradas = Decimal(str(compra['precio'])) * len(butacas)
+        servicios, subtotal_servicios = _armar_servicios(compra['id_compra'])
 
         items.append({
             'id_compra': compra['id_compra'],
             'estado': estado,
             'fecha_hora': formatear_fecha_hora(compra['fecha_hora']),
+            'vence_en': formatear_fecha_hora(compra['fecha_hora'] + timedelta(minutes=MINUTOS_RESERVA)) if estado == ESTADO_PENDIENTE else None,
             'funcion': {
                 'id_funcion': compra['id_funcion'],
                 'pelicula': compra['pelicula'],
@@ -566,7 +584,10 @@ def listar_compras(args, id_usuario: int) -> dict:
                 'precio': str(compra['precio']),
             },
             'butacas': butacas,
-            'subtotal_entradas': str(Decimal(str(compra['precio'])) * len(butacas)),
+            'servicios': servicios,
+            'subtotal_entradas': str(subtotal_entradas),
+            'subtotal_servicios': str(subtotal_servicios),
+            'total': str(subtotal_entradas + subtotal_servicios),
             'puede_cancelar': puede_cancelar,
             'tiene_qr': tiene_qr,
         })

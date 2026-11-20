@@ -151,6 +151,11 @@
     margin-top: 0.75rem;
 }
 
+.mis-entradas-acciones .checkout-aviso,
+.mis-entradas-acciones form {
+    margin: 0;
+}
+
 .mis-entradas-qr {
     display: grid;
     justify-items: center;

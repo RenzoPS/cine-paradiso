@@ -8,6 +8,7 @@ from cine_paradiso_web.routes.admin_routes import admin_bp
 from cine_paradiso_web.routes.cartelera_routes import cartelera_bp
 from cine_paradiso_web.routes.compras_routes import compras_bp
 from cine_paradiso_web.routes.butacas_routes import butacas_bp
+from cine_paradiso_web.routes.servicios_routes import servicios_admin_bp, servicios_bp
 from cine_paradiso_web.routes.auth import auth_bp
 from cine_paradiso_web.routes.usuarios import usuarios_bp
 from cine_paradiso_web.services.api_service import ApiError
@@ -41,6 +42,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(usuarios_bp)
 
 app.register_blueprint(butacas_bp)
+app.register_blueprint(servicios_admin_bp)
+app.register_blueprint(servicios_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, port=WEB_PORT)
