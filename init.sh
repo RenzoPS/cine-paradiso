@@ -43,9 +43,9 @@ if [ "${1:-}" = "--instalar" ]; then
     exit 0
 fi
 
-paso "Levantando MySQL en Docker (la primera vez tarda porque carga init.sql y catalogo.sql)"
-docker compose up -d --wait db || error "MySQL no arrancó. Mirá el detalle con: docker compose logs db"
-ok "MySQL listo"
+paso "Levantando MySQL y Mailpit en Docker (la primera vez tarda porque carga init.sql y seed.sql)"
+docker compose up -d --wait db mailpit || error "No arrancaron. Mirá el detalle con: docker compose logs db mailpit"
+ok "MySQL y Mailpit listos"
 
 trap 'trap - EXIT INT TERM; echo; echo "==> Frenando la API y la web"; kill 0' EXIT INT TERM
 

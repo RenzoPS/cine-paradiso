@@ -8,4 +8,2466 @@ info:
 servers:
   - url: http://localhost:5000/cine_paradiso_api
 
-paths: {}
+paths:
+  /funciones:
+    get:
+      summary: Listar funciones disponibles
+      description: |
+        Devuelve funciones futuras paginadas, ordenadas por fecha y hora. Se puede
+        filtrar por película, local y día. Si la fecha es hoy, solo se incluyen
+        funciones posteriores al momento actual en GMT-3; una fecha anterior a hoy
+        no devuelve resultados. Si no hay coincidencias, responde `200` con
+        `funciones: []` y `_total: 0`.
+      operationId: get_funciones
+      tags:
+        - Funciones
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: id_pelicula
+          in: query
+          description: Filtra por identificador interno positivo de película.
+          schema:
+            type: integer
+            minimum: 1
+        - name: id_local
+          in: query
+          description: Filtra por identificador interno positivo de local.
+          schema:
+            type: integer
+            minimum: 1
+        - name: fecha
+          in: query
+          description: |
+            Día calendario de la función en formato YYYY-MM-DD y GMT-3.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Listado paginado de funciones disponibles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FuncionesPaginadas'
+              example:
+                funciones:
+                  - id_funcion: 12
+                    id_pelicula: 4
+                    pelicula: Cinema Paradiso
+                    poster_url: https://image.tmdb.org/t/p/w500/example.jpg
+                    duracion_min: 155
+                    id_sala: 1
+                    sala: Sala 1
+                    id_local: 1
+                    local: Cine Paradiso - Centro
+                    direccion: Av. Corrientes 1234, CABA
+                    fecha_hora: '2026-11-18T20:30:00-03:00'
+                    precio: '4500.00'
+                _limit: 10
+                _offset: 0
+                _total: 1
+                _links:
+                  _first: /cine_paradiso_api/funciones?_limit=10&_offset=0
+                  _prev: null
+                  _next: null
+                  _last: /cine_paradiso_api/funciones?_limit=10&_offset=0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Programar una función
+      description: |
+        Crea una función para una película en una sala. La película debe tener
+        duración positiva y un período de disponibilidad configurado que incluya
+        el comienzo de la función. La fecha/hora debe ser futura. Se rechazan
+        funciones superpuestas en la misma sala; el intervalo se calcula usando
+        la duración de cada película. Requiere una sesión válida con rol Admin.
+      operationId: post_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FuncionInput'
+            example:
+              id_pelicula: 4
+              id_sala: 1
+              fecha_hora: '2026-11-18T20:30:00-03:00'
+              precio: '4500.00'
+      responses:
+        '201':
+          description: Función programada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe la película o sala indicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película no se puede programar o hay un conflicto de horario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}:
+    get:
+      summary: Obtener el detalle de una función
+      description: Devuelve los datos de una función, su película, sala y local.
+      operationId: get_funcion
+      tags:
+        - Funciones
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Detalle de la función.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Editar una función
+      description: |
+        Reemplaza película, sala, fecha/hora y precio. Aplica las mismas
+        validaciones de disponibilidad y superposición que al programar una
+        función. Requiere una sesión válida con rol Admin.
+      operationId: put_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FuncionInput'
+      responses:
+        '200':
+          description: Función actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Funcion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe la función, película o sala indicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película no se puede programar o hay un conflicto de horario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}/butacas:
+    get:
+      summary: Obtener el mapa de butacas de una función
+      description: |
+        Devuelve la función, la capacidad de la sala, las butacas disponibles
+        y las filas con sus butacas. Antes vence los holds de la función que
+        superaron los 10 minutos; una butaca está ocupada si existe su entrada.
+      operationId: get_butacas_funcion
+      tags:
+        - Funciones
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Mapa de butacas de la función.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapaButacas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /salas:
+    get:
+      summary: Listar salas para programación
+      description: Devuelve las salas y sus locales para los formularios de administración.
+      operationId: get_salas
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      responses:
+        '200':
+          description: Salas disponibles para programar funciones.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Salas'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /peliculas:
+    get:
+      summary: Listar películas
+      description: |
+        Devuelve las películas del catálogo paginadas. Cada película tiene un solo
+        `genero` (el principal de TMDB); por compatibilidad también se devuelve
+        en `generos` como lista de un elemento. `activa` no se guarda en la base:
+        se calcula y es `true` si `disponible_hasta` es nulo o todavía no pasó.
+        Se puede filtrar por título parcial, género exacto, clasificación exacta,
+        vigencia (`activa`, por defecto `true`), cartelera, local y fecha. Las
+        comparaciones de texto no distinguen mayúsculas. `en_cartel=true` exige
+        período de disponibilidad vigente y al menos una función futura;
+        `en_cartel=false` aplica la condición inversa dentro del contexto de
+        local y fecha solicitado. `id_local` y `fecha` también pueden usarse por
+        separado para filtrar películas con funciones futuras.
+        `fecha` usa `YYYY-MM-DD`; una fecha anterior al día actual en GMT-3 no
+        devuelve películas. La disponibilidad nula no cumple la condición de
+        cartelera.
+        Si no hay coincidencias, responde `200` con `peliculas: []` y `_total: 0`.
+      operationId: get_peliculas
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: titulo
+          in: query
+          description: Busca una parte del título.
+          schema:
+            type: string
+            minLength: 1
+        - name: genero
+          in: query
+          description: Filtra por nombre exacto de género.
+          schema:
+            type: string
+            minLength: 1
+        - name: clasificacion
+          in: query
+          description: Filtra por clasificación exacta.
+          schema:
+            type: string
+            minLength: 1
+        - name: activa
+          in: query
+          description: |
+            Filtra por vigencia: `true` devuelve las películas con período en
+            cartel abierto y `false` las dadas de baja. Por defecto se aplica `true`.
+          schema:
+            type: boolean
+            default: true
+        - name: en_cartel
+          in: query
+          description: |
+            `true` busca películas que cumplen la regla de cartelera; `false`
+            busca las que no la cumplen en el contexto de `id_local` y/o `fecha`.
+          schema:
+            type: boolean
+        - name: id_local
+          in: query
+          description: Filtra por películas con funciones futuras en este local.
+          schema:
+            type: integer
+            minimum: 1
+        - name: fecha
+          in: query
+          description: |
+            Día calendario de funciones futuras, en formato YYYY-MM-DD y GMT-3.
+            Si es hoy solo considera funciones posteriores al momento actual; fechas
+            anteriores a hoy no devuelven películas.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Listado paginado de películas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeliculasPaginadas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Importar película desde TMDB
+      description: |
+        Importa al catálogo local una película identificada por su ID de TMDB.
+        La API obtiene los datos desde el detalle de TMDB y guarda el primer
+        género como `genero` de la película. La película se crea activa;
+        `clasificacion`, `disponible_desde` y `disponible_hasta` quedan en `null`
+        para configurarlos posteriormente desde el backoffice.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: post_pelicula
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tmdb_id
+              additionalProperties: false
+              properties:
+                tmdb_id:
+                  type: integer
+                  minimum: 1
+                  description: Identificador de la película en TMDB.
+            example:
+              tmdb_id: 11216
+      responses:
+        '201':
+          description: Película importada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+              example:
+                id_pelicula: 4
+                tmdb_id: 11216
+                titulo: Cinema Paradiso
+                sinopsis: Un cineasta recuerda su infancia y su amistad con el proyeccionista del cine de su pueblo.
+                poster_url: https://image.tmdb.org/t/p/w500/example.jpg
+                duracion_min: 155
+                clasificacion: null
+                disponible_desde: null
+                disponible_hasta: null
+                genero: Drama
+                activa: true
+                generos:
+                  - Drama
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: TMDB no tiene una película con el ID indicado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La película de TMDB ya fue importada al catálogo local.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: TMDB no respondió o devolvió una respuesta inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Falta configurar `TMDB_API_KEY` en el servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /peliculas/tmdb:
+    get:
+      summary: Buscar películas en TMDB
+      description: |
+        Busca películas en TMDB por título, en idioma español de Argentina, y devuelve
+        los campos necesarios para que un administrador pueda elegir una película
+        para importar. La credencial se lee en el servidor desde `TMDB_API_KEY` y no se
+        envía en la solicitud del cliente.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: buscar_peliculas_tmdb
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: q
+          in: query
+          description: Título o parte del título a buscar.
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Búsqueda completada; `resultados` puede estar vacío.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusquedaTMDB'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          description: TMDB no respondió o devolvió una respuesta inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Falta configurar `TMDB_API_KEY` en el servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /peliculas/{id_pelicula}:
+    get:
+      summary: Obtener película por ID
+      operationId: get_pelicula
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Película encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Editar película
+      description: |
+        Reemplaza todos los campos editables de una película. El body debe incluir
+        `sinopsis`, `poster_url`, `clasificacion`, `disponible_desde` y
+        `disponible_hasta`; los campos admiten `null`. Las fechas deben enviarse en
+        Formato de fecha y hora: `YYYY-MM-DDTHH:MM:SS-03:00`. El período debe
+        tener ambas fechas nulas o ambas informadas, y `disponible_desde` no puede
+        ser posterior a `disponible_hasta`.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: put_pelicula
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sinopsis
+                - poster_url
+                - clasificacion
+                - disponible_desde
+                - disponible_hasta
+              additionalProperties: false
+              properties:
+                sinopsis:
+                  type: string
+                  nullable: true
+                poster_url:
+                  type: string
+                  format: uri
+                  description: URL HTTP o HTTPS del póster.
+                  nullable: true
+                clasificacion:
+                  type: string
+                  nullable: true
+                disponible_desde:
+                  type: string
+                  format: date-time
+                  description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+                  nullable: true
+                disponible_hasta:
+                  type: string
+                  format: date-time
+                  description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+                  nullable: true
+            example:
+              sinopsis: Una sinopsis revisada para el catálogo.
+              poster_url: https://example.com/poster.jpg
+              clasificacion: ATP
+              disponible_desde: '2026-11-01T00:00:00-03:00'
+              disponible_hasta: '2026-12-31T23:59:59-03:00'
+      responses:
+        '200':
+          description: Película actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Dar de baja una película
+      description: |
+        Realiza una baja lógica: pone `disponible_hasta` en el momento actual (y
+        ajusta `disponible_desde` si era posterior o nulo), por lo que la película
+        deja de estar activa y sale de la cartelera. No elimina la película ni sus
+        funciones o compras asociadas. Repetir la solicitud para una película ya
+        dada de baja también responde correctamente con su estado actual.
+
+        Requiere una sesión válida con rol Admin.
+      operationId: eliminar_pelicula
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_pelicula
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Película dada de baja, o que ya lo estaba.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pelicula'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una película con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /servicios:
+    get:
+      summary: Listar servicios
+      description: |
+        Devuelve los servicios que se pueden agregar a una compra, paginados y ordenados por nombre.
+        Por defecto lista solo los activos; con `activo=false` lista los dados de baja.
+        Es público: no requiere sesión. Si no hay coincidencias responde `200` con `servicios: []`.
+      operationId: get_servicios
+      tags:
+        - Servicios
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: activo
+          in: query
+          description: Filtra por estado. Por defecto `true`.
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Página de servicios.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosPaginados'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Crear un servicio
+      description: Requiere una sesión válida con rol Admin.
+      operationId: post_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioEntrada'
+      responses:
+        '201':
+          description: Servicio creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /servicios/{id_servicio}:
+    get:
+      summary: Obtener un servicio
+      description: Público. Devuelve el servicio aunque esté dado de baja.
+      operationId: get_servicio
+      tags:
+        - Servicios
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      responses:
+        '200':
+          description: El servicio.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Reemplazar un servicio
+      description: |
+        Reemplaza todos los campos del servicio. Para volver a ofrecer un servicio dado de baja se envía `activo: true`.
+        Requiere una sesión válida con rol Admin.
+      operationId: put_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioEntrada'
+      responses:
+        '200':
+          description: Servicio actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Dar de baja un servicio
+      description: |
+        Baja lógica: pone `activo` en `false`. El servicio deja de ofrecerse en nuevas compras, pero no se elimina,
+        por lo que las compras anteriores lo conservan. Repetir la solicitud responde con el estado actual.
+        Requiere una sesión válida con rol Admin.
+      operationId: delete_servicio
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdServicio'
+      responses:
+        '200':
+          description: Servicio dado de baja, o que ya lo estaba.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe un servicio con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /compras/{id_compra}/servicios:
+    get:
+      summary: Ver los servicios de una compra
+      description: Devuelve los servicios elegidos y su subtotal. Requiere una sesión de cliente dueño de la compra.
+      operationId: get_servicios_de_compra
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdCompra'
+      responses:
+        '200':
+          description: Servicios de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosDeCompra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: La sesión no es de un cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: La compra no existe o es de otro usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Definir los servicios de una compra
+      description: |
+        Reemplaza los servicios de la compra por la lista enviada (una lista vacía los quita todos).
+        Solo se puede mientras la compra esté `pendiente`. Cada servicio debe estar activo.
+        El precio no se guarda en la compra: el total se calcula con el precio vigente.
+        Requiere una sesión de cliente dueño de la compra.
+      operationId: put_servicios_de_compra
+      tags:
+        - Servicios
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/IdCompra'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - servicios
+              properties:
+                servicios:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id_servicio
+                      - cantidad
+                    properties:
+                      id_servicio:
+                        type: integer
+                        minimum: 1
+                        example: 1
+                      cantidad:
+                        type: integer
+                        minimum: 1
+                        maximum: 20
+                        example: 2
+      responses:
+        '200':
+          description: Servicios guardados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiciosDeCompra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: La sesión no es de un cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: La compra no existe o es de otro usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pendiente, o un servicio no existe o está dado de baja.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /compras:
+    get:
+      summary: "Listar las compras del cliente"
+      description: |
+        Devuelve el listado paginado de las compras del cliente autenticado, ordenadas de la más reciente a la más antigua. Si alguna compra está `pendiente`, primero vence las reservas expiradas de su función para informar el estado real.
+      operationId: get_compras
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Listado paginado de compras del cliente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComprasPaginadas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no tiene compras propias.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: "Reservar butacas"
+      description: |
+        Crea la compra `pendiente` con sus entradas en una sola transacción y reserva las butacas por 10 minutos. Antes de reservar libera las pendientes vencidas de la función (pasan a `vencida` y se borran sus entradas).
+      operationId: post_compra
+      tags:
+        - Compras
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompraInput'
+      responses:
+        '201':
+          description: Butacas reservadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compra'
+        '400':
+          description: Cuerpo inválido, más de 4 butacas, butacas repetidas o que no son de la sala de la función (`compra.butaca.ajena`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la función (`funcion.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Alguna butaca ya está reservada (`compra.butaca.ocupada`) o la función ya empezó (`compra.funcion.pasada`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}:
+    get:
+      summary: "Obtener el detalle de una compra"
+      description: |
+        Devuelve la compra del usuario logueado. Si está pendiente, antes vence los holds de su función, así devuelve el estado real; `vence_en` solo viene mientras está pendiente.
+      operationId: get_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Detalle de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compra'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: "Cancelar una compra antes de pagar"
+      description: |
+        Borra la compra pendiente con sus entradas y servicios: las butacas quedan libres y no cuenta como cancelación en los dashboards.
+      operationId: delete_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '204':
+          description: Compra eliminada.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pendiente (`compra.no.abandonable`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/confirmar:
+    post:
+      summary: "Confirmar una compra"
+      description: |
+        Confirma la compra: pasa de `pendiente` a `pagada`, calcula el total, genera la factura y envía el mail. Si la compra ya estaba pagada, devuelve la misma factura y no envía otro mail. Si el mail falla, la compra igual queda pagada (`mail_enviado: false`).
+      operationId: post_confirmar_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra confirmada, o ya confirmada anteriormente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La reserva venció (`compra.vencida`) o la compra no está pendiente (`compra.no.confirmable`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/cancelar:
+    post:
+      summary: "Cancelar una compra pagada"
+      description: |
+        Cancela una compra pagada si faltan al menos 24 horas para la función. La compra pasa a `cancelada` y se borran sus entradas: las butacas quedan libres.
+      operationId: post_cancelar_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra cancelada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 7
+                  estado:
+                    type: string
+                    example: cancelada
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un cliente (`auth.access.denied`); el admin no puede comprar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pagada (`compra.no.cancelable`) o faltan menos de 24 horas para la función (`compra.fuera.plazo`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/factura:
+    get:
+      summary: "Obtener la factura de una compra"
+      description: Devuelve la factura de una compra propia que ya fue pagada.
+      operationId: get_factura_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Factura de la compra.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra todavía no fue pagada (`compra.sin.factura`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/qr:
+    get:
+      summary: "Obtener el QR de una compra"
+      description: "Devuelve la imagen PNG del código QR de una compra propia (cliente) o de cualquier compra (rol Admin) que ya fue pagada o usada."
+      operationId: get_qr_compra
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Imagen PNG del código QR de la compra.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra o no es del usuario (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra todavía no fue pagada (`qr.not.issued`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/admin:
+    get:
+      summary: "Listar compras con QR para validación en el backoffice"
+      description: "Devuelve las compras en estado `pagada`, `usada` o `cancelada` con sus datos de función, cliente y butacas para validar el ingreso desde el backoffice. Requiere rol Admin."
+      operationId: get_compras_admin
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      responses:
+        '200':
+          description: Listado de compras con QR emitidos.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - compras
+                properties:
+                  compras:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id_compra
+                        - estado
+                        - fecha_compra
+                        - pelicula
+                        - sala
+                        - local
+                        - fecha_hora_funcion
+                        - cliente_nombre
+                        - cliente_email
+                        - butacas
+                      properties:
+                        id_compra:
+                          type: integer
+                          example: 1
+                        estado:
+                          type: string
+                          enum:
+                            - pagada
+                            - usada
+                            - cancelada
+                          example: pagada
+                        fecha_compra:
+                          type: string
+                          format: date-time
+                          example: '2026-11-18T15:30:00-03:00'
+                        pelicula:
+                          type: string
+                          example: Cinema Paradiso
+                        sala:
+                          type: string
+                          example: Sala 1
+                        local:
+                          type: string
+                          example: Cine Paradiso - Centro
+                        fecha_hora_funcion:
+                          type: string
+                          format: date-time
+                          example: '2026-11-18T20:30:00-03:00'
+                        cliente_nombre:
+                          type: string
+                          example: Juan
+                        cliente_email:
+                          type: string
+                          example: juan@ejemplo.com
+                        butacas:
+                          type: array
+                          items:
+                            type: string
+                          example:
+                            - E8
+                            - E9
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Se requieren permisos de administrador (`auth.access.denied`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/validar:
+    post:
+      summary: "Validar el QR en el ingreso a la sala"
+      description: "Valida el token del QR para una función dentro de su ventana horaria (desde 15 minutos antes del inicio hasta su finalización) y marca la compra como usada. Requiere rol Admin."
+      operationId: post_validar_compra
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qr_token
+              additionalProperties: false
+              properties:
+                qr_token:
+                  type: string
+                  description: Token firmado contenido en el código QR de la compra.
+            example:
+              qr_token: eyJpZF9jb21wcmEiOjF9.signature
+      responses:
+        '200':
+          description: Ingreso válido; la compra quedó marcada como usada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id_compra
+                  - estado
+                  - fecha_validacion
+                  - butacas
+                  - pelicula
+                  - sala
+                  - local
+                  - fecha_hora_funcion
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 1
+                  estado:
+                    type: string
+                    enum:
+                      - usada
+                    example: usada
+                  fecha_validacion:
+                    type: string
+                    format: date-time
+                    example: '2026-11-18T20:18:00-03:00'
+                  butacas:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - E8
+                      - E9
+                  pelicula:
+                    type: string
+                    example: Cinema Paradiso
+                  sala:
+                    type: string
+                    example: Sala 1
+                  local:
+                    type: string
+                    example: Cine Paradiso - Centro
+                  fecha_hora_funcion:
+                    type: string
+                    format: date-time
+                    example: '2026-11-18T20:30:00-03:00'
+        '400':
+          description: Cuerpo inválido o token QR inválido (`qr.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Se requieren permisos de administrador (`auth.access.denied`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: QR ya utilizado (`qr.already.used`), cancelado (`qr.cancelled`), compra sin pagar (`qr.not.paid`), sala cerrada (`qr.room.closed`) o función finalizada (`qr.show.ended`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /compras/{id_compra}/validar:
+    post:
+      summary: "Validar el ingreso de una compra por ID desde el backoffice"
+      description: "Valida el ingreso de una compra identificada por su ID verificando la misma ventana horaria y reglas que el escaneo de QR, y la marca como usada. Requiere rol Admin."
+      operationId: post_validar_compra_por_id
+      tags:
+        - Compras
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo de la compra.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Ingreso válido; la compra quedó marcada como usada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id_compra
+                  - estado
+                  - fecha_validacion
+                  - butacas
+                  - pelicula
+                  - sala
+                  - local
+                  - fecha_hora_funcion
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 1
+                  estado:
+                    type: string
+                    enum:
+                      - usada
+                    example: usada
+                  fecha_validacion:
+                    type: string
+                    format: date-time
+                    example: '2026-11-18T20:18:00-03:00'
+                  butacas:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - E8
+                      - E9
+                  pelicula:
+                    type: string
+                    example: Cinema Paradiso
+                  sala:
+                    type: string
+                    example: Sala 1
+                  local:
+                    type: string
+                    example: Cine Paradiso - Centro
+                  fecha_hora_funcion:
+                    type: string
+                    format: date-time
+                    example: '2026-11-18T20:30:00-03:00'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Se requieren permisos de administrador (`auth.access.denied`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe una compra con ese ID (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: QR ya utilizado (`qr.already.used`), cancelado (`qr.cancelled`), compra sin pagar (`qr.not.paid`), sala cerrada (`qr.room.closed`) o función finalizada (`qr.show.ended`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /dashboard:
+    get:
+      summary: "Indicadores del backoffice"
+      description: "Devuelve en una sola respuesta la ocupación por función y por película, las ventas por género, las franjas horarias más vendidas y las cancelaciones. Una venta es una entrada de una compra `pagada` o `usada`; las pendientes no cuentan. Requiere rol Admin."
+      operationId: get_dashboard
+      tags:
+        - Dashboard
+      security:
+        - TokenSesion: []
+      responses:
+        '200':
+          description: Indicadores calculados a partir de las compras y entradas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    TokenSesion:
+      type: apiKey
+      in: cookie
+      name: token_sesion
+  parameters:
+    Limit:
+      name: _limit
+      in: query
+      required: false
+      description: Cantidad de elementos entre 1 y 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    Offset:
+      name: _offset
+      in: query
+      required: false
+      description: Elementos a omitir; debe ser mayor o igual a cero.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    IdServicio:
+      name: id_servicio
+      in: path
+      required: true
+      description: Identificador interno positivo del servicio.
+      schema:
+        type: integer
+        minimum: 1
+    IdCompra:
+      name: id_compra
+      in: path
+      required: true
+      description: Identificador interno positivo de la compra.
+      schema:
+        type: integer
+        minimum: 1
+  responses:
+    BadRequest:
+      description: Parámetros inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Error interno al procesar la solicitud.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No hay una sesión válida o el token expiró.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: La sesión no tiene permisos de administrador.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    FuncionesPaginadas:
+      type: object
+      required:
+        - funciones
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        funciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Funcion'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    Funcion:
+      type: object
+      required:
+        - id_funcion
+        - id_pelicula
+        - pelicula
+        - poster_url
+        - duracion_min
+        - id_sala
+        - sala
+        - id_local
+        - local
+        - direccion
+        - fecha_hora
+        - precio
+      properties:
+        id_funcion:
+          type: integer
+          example: 12
+        id_pelicula:
+          type: integer
+          example: 4
+        pelicula:
+          type: string
+          example: Cinema Paradiso
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        duracion_min:
+          type: integer
+          nullable: true
+          example: 155
+        id_sala:
+          type: integer
+          example: 1
+        sala:
+          type: string
+          example: Sala 1
+        id_local:
+          type: integer
+          example: 1
+        local:
+          type: string
+          example: Cine Paradiso - Centro
+        direccion:
+          type: string
+          example: Av. Corrientes 1234, CABA
+        fecha_hora:
+          type: string
+          format: date-time
+          description: Fecha y hora en formato YYYY-MM-DDTHH:MM:SS-03:00.
+          example: '2026-11-18T20:30:00-03:00'
+        precio:
+          type: string
+          description: Precio decimal con dos posiciones.
+          example: '4500.00'
+    FuncionInput:
+      type: object
+      required:
+        - id_pelicula
+        - id_sala
+        - fecha_hora
+        - precio
+      additionalProperties: false
+      properties:
+        id_pelicula:
+          type: integer
+          minimum: 1
+        id_sala:
+          type: integer
+          minimum: 1
+        fecha_hora:
+          type: string
+          format: date-time
+          description: Fecha/hora local con desplazamiento fijo GMT-3.
+          example: '2026-11-18T20:30:00-03:00'
+        precio:
+          oneOf:
+            - type: number
+            - type: string
+          description: Precio no negativo de hasta dos posiciones decimales.
+          example: '4500.00'
+    Salas:
+      type: object
+      required:
+        - salas
+      properties:
+        salas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_sala
+              - sala
+              - id_local
+              - local
+              - direccion
+            properties:
+              id_sala:
+                type: integer
+                example: 1
+              sala:
+                type: string
+                example: Sala 1
+              id_local:
+                type: integer
+                example: 1
+              local:
+                type: string
+                example: Cine Paradiso - Centro
+              direccion:
+                type: string
+                example: Av. Corrientes 1234, CABA
+    MapaButacas:
+      type: object
+      required:
+        - funcion
+        - capacidad
+        - disponibles
+        - filas
+      properties:
+        funcion:
+          $ref: '#/components/schemas/Funcion'
+        capacidad:
+          type: integer
+          description: Cantidad total de butacas de la sala.
+          example: 96
+        disponibles:
+          type: integer
+          description: Butacas libres para esta función.
+          example: 94
+        filas:
+          type: array
+          items:
+            type: object
+            required:
+              - fila
+              - butacas
+            properties:
+              fila:
+                type: string
+                example: A
+              butacas:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id_butaca
+                    - numero
+                    - ocupada
+                  properties:
+                    id_butaca:
+                      type: integer
+                      example: 1
+                    numero:
+                      type: integer
+                      example: 1
+                    ocupada:
+                      type: boolean
+                      example: false
+    PeliculasPaginadas:
+      type: object
+      required:
+        - peliculas
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        peliculas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pelicula'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    Pelicula:
+      type: object
+      required:
+        - id_pelicula
+        - tmdb_id
+        - titulo
+        - sinopsis
+        - poster_url
+        - duracion_min
+        - clasificacion
+        - disponible_desde
+        - disponible_hasta
+        - genero
+        - activa
+        - generos
+      properties:
+        id_pelicula:
+          type: integer
+          example: 1
+        tmdb_id:
+          type: integer
+          nullable: true
+          example: 11216
+        titulo:
+          type: string
+        sinopsis:
+          type: string
+          nullable: true
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        duracion_min:
+          type: integer
+          nullable: true
+        clasificacion:
+          type: string
+          nullable: true
+        disponible_desde:
+          type: string
+          format: date-time
+          nullable: true
+        disponible_hasta:
+          type: string
+          format: date-time
+          nullable: true
+        genero:
+          type: string
+          nullable: true
+          example: Drama
+        activa:
+          type: boolean
+          description: Calculado; `true` si `disponible_hasta` es nulo o todavía no pasó.
+        generos:
+          type: array
+          description: El `genero` como lista de un elemento, por compatibilidad.
+          items:
+            type: string
+    BusquedaTMDB:
+      type: object
+      required:
+        - resultados
+      properties:
+        resultados:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeliculaTMDB'
+    PeliculaTMDB:
+      type: object
+      required:
+        - tmdb_id
+        - titulo
+        - titulo_original
+        - sinopsis
+        - fecha_lanzamiento
+        - poster_url
+        - tmdb_genero_ids
+      properties:
+        tmdb_id:
+          type: integer
+        titulo:
+          type: string
+        titulo_original:
+          type: string
+        sinopsis:
+          type: string
+        fecha_lanzamiento:
+          type: string
+          format: date
+          nullable: true
+        poster_url:
+          type: string
+          format: uri
+          nullable: true
+        tmdb_genero_ids:
+          type: array
+          items:
+            type: integer
+    EnlacesPaginacion:
+      type: object
+      description: Rutas relativas al servidor, con el prefijo `/cine_paradiso_api`.
+      required:
+        - _first
+        - _prev
+        - _next
+        - _last
+      properties:
+        _first:
+          type: string
+        _prev:
+          type: string
+          nullable: true
+        _next:
+          type: string
+          nullable: true
+        _last:
+          type: string
+    CompraInput:
+      type: object
+      required:
+        - id_funcion
+        - butacas
+      properties:
+        id_funcion:
+          type: integer
+          minimum: 1
+          example: 1
+        butacas:
+          type: array
+          description: Identificadores de butaca de la sala de la función, sin repetir.
+          minItems: 1
+          maxItems: 4
+          items:
+            type: integer
+            minimum: 1
+          example: [12, 13]
+    Compra:
+      type: object
+      required:
+        - id_compra
+        - estado
+        - fecha_hora
+        - vence_en
+        - funcion
+        - butacas
+        - subtotal_entradas
+      properties:
+        id_compra:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pendiente
+        fecha_hora:
+          type: string
+          example: '2026-11-17T12:17:42-03:00'
+        vence_en:
+          type: string
+          nullable: true
+          description: Fin de la reserva. Solo mientras la compra está pendiente.
+          example: '2026-11-17T12:27:42-03:00'
+        funcion:
+          $ref: '#/components/schemas/Funcion'
+        butacas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_butaca
+              - fila
+              - numero
+            properties:
+              id_butaca:
+                type: integer
+                example: 12
+              fila:
+                type: string
+                example: A
+              numero:
+                type: integer
+                example: 1
+        subtotal_entradas:
+          type: string
+          description: Precio de la función por la cantidad de butacas.
+          example: '10000.00'
+    ComprasPaginadas:
+      type: object
+      required:
+        - compras
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        compras:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompraListado'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    CompraListado:
+      type: object
+      required:
+        - id_compra
+        - estado
+        - fecha_hora
+        - vence_en
+        - funcion
+        - butacas
+        - servicios
+        - subtotal_entradas
+        - subtotal_servicios
+        - total
+        - puede_cancelar
+        - tiene_qr
+      properties:
+        id_compra:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pagada
+        fecha_hora:
+          type: string
+          format: date-time
+          example: '2026-11-17T12:17:42-03:00'
+        vence_en:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fin de la reserva. Solo mientras la compra está pendiente; en otro estado es `null`.
+          example: '2026-11-17T12:27:42-03:00'
+        funcion:
+          type: object
+          required:
+            - id_funcion
+            - pelicula
+            - poster_url
+            - sala
+            - local
+            - fecha_hora
+            - precio
+          properties:
+            id_funcion:
+              type: integer
+              example: 1
+            pelicula:
+              type: string
+              example: Cinema Paradiso
+            poster_url:
+              type: string
+              format: uri
+              nullable: true
+            sala:
+              type: string
+              example: Sala 1
+            local:
+              type: string
+              example: Cine Paradiso - Centro
+            fecha_hora:
+              type: string
+              format: date-time
+              example: '2026-11-20T20:30:00-03:00'
+            precio:
+              type: string
+              example: '5000.00'
+        butacas:
+          type: array
+          items:
+            type: object
+            required:
+              - id_butaca
+              - fila
+              - numero
+            properties:
+              id_butaca:
+                type: integer
+                example: 12
+              fila:
+                type: string
+                example: A
+              numero:
+                type: integer
+                example: 1
+        servicios:
+          type: array
+          description: Servicios elegidos en la compra.
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Chocolate
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1500.00'
+              subtotal:
+                type: string
+                example: '3000.00'
+        subtotal_entradas:
+          type: string
+          example: '10000.00'
+        subtotal_servicios:
+          type: string
+          example: '3000.00'
+        total:
+          type: string
+          description: Entradas más servicios.
+          example: '13000.00'
+        puede_cancelar:
+          type: boolean
+          description: "`true` si la compra está pagada y faltan al menos `HORAS_LIMITE_CANCELACION` horas para la función."
+          example: true
+        tiene_qr:
+          type: boolean
+          description: "`true` si la compra está en estado `pagada` o `usada`."
+          example: true
+    Factura:
+      type: object
+      properties:
+        id_compra:
+          type: integer
+          example: 7
+        numero_factura:
+          type: string
+          example: '00000007'
+        estado:
+          type: string
+          enum: [pendiente, pagada, usada, cancelada, vencida]
+          example: pagada
+        funcion:         
+          type: object
+          properties:
+            pelicula:
+              type: string
+              example: Volver al Futuro
+            sala:
+              type: string
+              example: Sala 1
+            fecha_hora:
+              type: string
+              example: '20/11/2026 21:00'
+        entradas:
+          type: array
+          items:
+            type: object
+            properties:
+              fila:
+                type: string
+                example: E
+              numero:
+                type: integer
+                example: 8
+              precio_unitario:
+                type: string
+                example: '2500.00'
+        servicios:
+          type: array
+          items:
+            type: object
+            properties:
+              nombre:
+                type: string
+                example: Pochoclo
+              cantidad:
+                type: integer
+                example: 2
+              precio_unitario:
+                type: string
+                example: '1200.00'
+              subtotal:
+                type: string
+                example: '2400.00'
+        subtotal_entradas:
+          type: string
+          example: '5000.00'
+        subtotal_servicios:
+          type: string
+          example: '2400.00'
+        total:
+          type: string
+          example: '7400.00'
+        mail_enviado:
+          type: boolean
+          nullable: true
+          description: |
+            `true` si el mail se envió y `false` si falló. `null` si no se intentó enviar (la compra ya estaba pagada, o es la consulta de la factura).
+    Dashboard:
+      type: object
+      required:
+        - ocupacion_por_funcion
+        - ocupacion_por_pelicula
+        - ventas_por_genero
+        - franjas_horarias
+        - cancelaciones
+      properties:
+        ocupacion_por_funcion:
+          type: array
+          items:
+            type: object
+            properties:
+              id_funcion:
+                type: integer
+                example: 3
+              pelicula:
+                type: string
+                example: Pelicula Demo
+              sala:
+                type: string
+                example: Sala 2
+              local:
+                type: string
+                example: Cine Paradiso - Centro
+              fecha_hora:
+                type: string
+                example: '2026-11-19T20:00:00-03:00'
+              vendidas:
+                type: integer
+                example: 4
+              capacidad:
+                type: integer
+                example: 60
+              porcentaje:
+                type: number
+                example: 6.7
+        ocupacion_por_pelicula:
+          type: array
+          items:
+            type: object
+            properties:
+              id_pelicula:
+                type: integer
+                example: 1
+              pelicula:
+                type: string
+                example: Pelicula Demo
+              funciones:
+                type: integer
+                example: 3
+              vendidas:
+                type: integer
+                example: 6
+              capacidad:
+                type: integer
+                example: 226
+              porcentaje:
+                type: number
+                example: 2.7
+        ventas_por_genero:
+          type: array
+          description: Solo géneros con ventas, de mayor a menor. Las películas sin género figuran como `Sin genero`.
+          items:
+            type: object
+            properties:
+              genero:
+                type: string
+                example: Drama
+              entradas:
+                type: integer
+                example: 6
+        franjas_horarias:
+          type: array
+          description: Entradas vendidas por hora de inicio de la función, de mayor a menor.
+          items:
+            type: object
+            properties:
+              hora:
+                type: string
+                example: '20:00'
+              entradas:
+                type: integer
+                example: 4
+        cancelaciones:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 2
+            por_pelicula:
+              type: array
+              items:
+                type: object
+                properties:
+                  id_pelicula:
+                    type: integer
+                    example: 1
+                  pelicula:
+                    type: string
+                    example: Pelicula Demo
+                  cancelaciones:
+                    type: integer
+                    example: 1
+    ErrorResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - code
+              - message
+              - level
+              - description
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              level:
+                type: string
+              description:
+                type: string
+    Servicio:
+      type: object
+      required:
+        - id_servicio
+        - nombre
+        - descripcion
+        - precio
+        - activo
+      properties:
+        id_servicio:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Combo pochoclos + gaseosa
+        descripcion:
+          type: string
+          nullable: true
+          example: Balde de pochoclos grande y gaseosa de 1 L
+        precio:
+          type: string
+          description: Monto decimal con dos decimales.
+          example: '3500.00'
+        activo:
+          type: boolean
+    ServicioEntrada:
+      type: object
+      required:
+        - nombre
+        - precio
+      properties:
+        nombre:
+          type: string
+          maxLength: 80
+        descripcion:
+          type: string
+          maxLength: 255
+          nullable: true
+        precio:
+          type: number
+          minimum: 0
+          example: 3500
+        activo:
+          type: boolean
+          default: true
+    ServiciosPaginados:
+      type: object
+      required:
+        - servicios
+        - _limit
+        - _offset
+        - _total
+        - _links
+      properties:
+        servicios:
+          type: array
+          items:
+            $ref: '#/components/schemas/Servicio'
+        _limit:
+          type: integer
+        _offset:
+          type: integer
+        _total:
+          type: integer
+        _links:
+          $ref: '#/components/schemas/EnlacesPaginacion'
+    ServiciosDeCompra:
+      type: object
+      required:
+        - id_compra
+        - servicios
+        - subtotal_servicios
+      properties:
+        id_compra:
+          type: integer
+        servicios:
+          type: array
+          items:
+            type: object
+            properties:
+              id_servicio:
+                type: integer
+              nombre:
+                type: string
+              cantidad:
+                type: integer
+              precio_unitario:
+                type: string
+              subtotal:
+                type: string
+        subtotal_servicios:
+          type: string
+          example: '7000.00'

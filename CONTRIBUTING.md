@@ -184,7 +184,7 @@ Para evitarlos:
 - `git pull origin develop` seguido, no una vez por semana.
 - Trabajá en los archivos de tu tarea.
 - Los archivos compartidos (`app.py`, `constants.py`, `init.sql`,
-  `catalogo.sql`) se tocan poco y en PR chicos.
+  `seed.sql`) se tocan poco y en PR chicos.
 
 ## Reglas de código
 
@@ -293,7 +293,7 @@ routes/  ->  services/  ->  repositories/
 Y en el mismo PR:
 
 1. Registrar el blueprint en el `app.py` que corresponda.
-2. Si hay tablas nuevas: `api/db/init.sql`, y si llevan datos fijos, `catalogo.sql`.
+2. Si hay tablas nuevas: `api/db/init.sql`, y si llevan datos fijos, `seed.sql`.
 3. Documentar los endpoints en `api/docs/swagger.yaml` y en la tabla del README.
 
 Si necesitás una dependencia nueva, agregala al `requirements.txt` que

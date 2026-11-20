@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'Editar función' if funcion else 'Programar función' }} - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ url_for('admin.funciones') }}">Funciones</a>
+        <span aria-hidden="true">/</span>
+        <span>{{ 'Editar' if funcion else 'Nueva' }}</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Programación</p>
+        <h1>{{ 'Editar función' if funcion else 'Programar función' }}</h1>
+        <p>La duración de la película determina el horario de finalización para evitar superposiciones en una sala.</p>
+    </header>
+
+    <section class="admin-panel">
+        <form
+            class="admin-edit-form"
+            method="post"
+            action="{{ url_for('admin.editar_funcion', id_funcion=funcion.id_funcion) if funcion else url_for('admin.nueva_funcion') }}"
+        >
+            <label>
+                Película
+                <select name="id_pelicula" required>
+                    <option value="">Seleccioná una película</option>
+                    {% for pelicula in peliculas %}
+                    <option
+                        value="{{ pelicula.id_pelicula }}"
+                        {% if funcion and pelicula.id_pelicula == funcion.id_pelicula %}selected{% endif %}
+                    >
+                        {{ pelicula.titulo }} · {{ pelicula.duracion_min }} min
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+            
+            <label>
+                Local
+                <select name="id_local" id="funcion-local" required>
+                    <option value="">Seleccioná un local</option>
+                    {% for local in locales %}
+                    <option
+                        value="{{ local.id_local }}"
+                        {% if local.id_local == id_local %}selected{% endif %}
+                    >
+                        {{ local.local }} ({{ local.direccion }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                Sala
+                <select name="id_sala" id="funcion-sala" required {% if not id_local %}disabled{% endif %}>
+                    <option value="">Seleccioná una sala</option>
+                    {% for sala in salas %}
+                    <option
+                        value="{{ sala.id_sala }}"
+                        data-id-local="{{ sala.id_local }}"
+                        {% if funcion and sala.id_sala == funcion.id_sala %}selected{% endif %}
+                    >
+                        {{ sala.sala }} · {{ sala.local }} ({{ sala.direccion }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                Fecha y hora local del cine
+                <input
+                    type="datetime-local"
+                    name="fecha_hora"
+                    value="{{ funcion.fecha_hora[:16] if funcion else '' }}"
+                    required
+                >
+            </label>
+
+            <label>
+                Precio de la entrada
+                <input
+                    type="number"
+                    name="precio"
+                    min="0"
+                    step="0.01"
+                    value="{{ funcion.precio if funcion else '' }}"
+                    required
+                >
+            </label>
+
+            <div class="admin-form-actions">
+                <a class="btn btn-outline" href="{{ url_for('admin.funciones') }}">Volver</a>
+                <button class="btn btn-primary" type="submit" {% if not salas or not locales %}disabled{% endif %}>
+                    {{ 'Guardar cambios' if funcion else 'Programar función' }}
+                </button>
+            </div>
+        </form>
+
+        {% if not salas %}
+        <p class="admin-empty-state">No hay salas disponibles para programar una función.</p>
+        {% endif %}
+        {% if not peliculas %}
+        <p class="admin-empty-state">
+            No hay películas activas con duración y período de disponibilidad configurados.
+        </p>
+        {% endif %}
+    </section>
+</section>
+
+<script>
+    (() => {
+        const localSelect = document.getElementById('funcion-local');
+        const salaSelect = document.getElementById('funcion-sala');
+        if (!localSelect || !salaSelect) return;
+
+        const placeholder = salaSelect.querySelector('option[value=""]');
+        const todasLasSalas = Array.from(salaSelect.querySelectorAll('option[data-id-local]'));
+        const salaInicial = salaSelect.value;
+
+        function actualizarSalas(idSalaPreferida) {
+            const idLocal = localSelect.value;
+            const salasDelLocal = todasLasSalas.filter(
+                (opcion) => opcion.dataset.idLocal === idLocal
+            );
+
+            salaSelect.replaceChildren(placeholder);
+            salasDelLocal.forEach((opcion) => salaSelect.appendChild(opcion));
+            salaSelect.disabled = !idLocal || salasDelLocal.length === 0;
+            salaSelect.value = salasDelLocal.some(
+                (opcion) => opcion.value === idSalaPreferida
+            ) ? idSalaPreferida : '';
+        }
+
+        localSelect.addEventListener('change', () => actualizarSalas(''));
+        actualizarSalas(salaInicial);
+    })();
+</script>
+{% endblock %}

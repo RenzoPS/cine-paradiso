@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta, timezone
 
 from dotenv import load_dotenv
 
@@ -9,3 +10,20 @@ WEB_PORT = int(os.getenv('WEB_PORT', '5001'))
 SECRET_KEY = os.getenv('WEB_SECRET_KEY', 'solo-para-desarrollo')
 
 API_URL = os.getenv('API_URL', 'http://localhost:5000/cine_paradiso_api')
+
+# Listas estáticas para la cartelera y filtros iniciales
+GENEROS_DISPONIBLES = [
+    'Todos', 'Drama', 'Comedia', 'Acción', 'Ciencia Ficción', 'Suspenso', 'Terror', 'Aventura', 'Romance'
+]
+
+PELICULAS = []
+
+TOKEN_COOKIE_NOMBRE = 'token_sesion'
+ROL_ADMIN = 'admin'
+
+API_TIMEOUT_SEGUNDOS = 10
+
+HORAS_LIMITE_CANCELACION = 24
+
+ESTADO_PENDIENTE = 'pendiente'
+TZ_ARG = timezone(timedelta(hours=-3))

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Backoffice - Cine Paradiso{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Administración</p>
+        <h1>Backoffice</h1>
+        <p>Gestioná el catálogo y las operaciones de Cine Paradiso.</p>
+    </header>
+
+    <aside class="admin-notice" role="status">
+        Iniciaste sesión como administrador. Desde aquí podés gestionar el catálogo disponible en el Backoffice.
+    </aside>
+
+    <div class="admin-card-grid">
+        <a class="admin-card" href="{{ url_for('admin.peliculas') }}">
+            <span class="admin-card-label">Catálogo</span>
+            <h2>Películas</h2>
+            <p>Consultá el catálogo y prepará la importación desde TMDB.</p>
+            <span class="admin-card-action">Administrar películas</span>
+        </a>
+
+        <a class="admin-card" href="{{ url_for('admin.funciones') }}">
+            <span class="admin-card-label">Programación</span>
+            <h2>Funciones</h2>
+            <p>Programá funciones y administrá horarios y precios.</p>
+            <span class="admin-card-action">Administrar funciones</span>
+        </a>
+
+        <a class="admin-card" href="{{ url_for('admin.ingresar_qr') }}">
+            <span class="admin-card-label">Acceso a sala</span>
+            <h2>Validar ingreso / QR</h2>
+            <p>Verificá entradas en puerta y simulá el escaneo desde el listado de compras.</p>
+            <span class="admin-card-action">Validar QR</span>
+        </a>
+
+        <a class="admin-card" href="{{ url_for('servicios_admin.listar') }}">
+            <span class="admin-card-label">Catálogo</span>
+            <h2>Servicios</h2>
+            <p>Administrá los combos y extras que se agregan a una compra.</p>
+            <span class="admin-card-action">Administrar servicios</span>
+        </a>
+
+        <a class="admin-card" href="{{ url_for('admin.dashboard') }}">
+            <span class="admin-card-label">Informes</span>
+            <h2>Estadísticas</h2>
+            <p>Ocupación, ventas por género, franjas horarias y cancelaciones.</p>
+            <span class="admin-card-action">Ver estadísticas</span>
+        </a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Validar ingreso - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        {% if qr_token %}
+        <a href="{{ url_for('admin.ingresar_qr') }}">Validar ingreso</a>
+        <span aria-hidden="true">/</span>
+        <span>Verificar QR</span>
+        {% else %}
+        <span>Validar ingreso</span>
+        {% endif %}
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Acceso a sala</p>
+        <h1>Validar ingreso</h1>
+        {% if qr_token %}
+        <p>Confirmá la validación de la entrada escaneada en la puerta de la sala.</p>
+        {% else %}
+        <p>Verificá el estado de las entradas emitidas y validá el ingreso de los espectadores a la sala.</p>
+        {% endif %}
+    </header>
+
+    {% if resultado_valido %}
+    <article class="admin-qr-resultado admin-qr-resultado-valido" role="status">
+        <div class="admin-qr-icono" aria-hidden="true">✔</div>
+        <h2>Ingreso válido</h2>
+        <p class="admin-qr-funcion">
+            {{ resultado_valido.pelicula }} · {{ resultado_valido.sala }} · {{ resultado_valido.local }}
+        </p>
+        <p class="admin-qr-meta">
+            Función: {{ resultado_valido.fecha_hora_funcion | fecha_legible }}
+        </p>
+        <p class="admin-qr-detalle">
+            {{ resultado_valido.butacas | length }} {{ 'entrada' if resultado_valido.butacas | length == 1 else 'entradas' }}
+            · Butacas {{ resultado_valido.butacas | join(', ') }}
+        </p>
+        <p class="admin-qr-meta">Compra #{{ resultado_valido.id_compra }}</p>
+    </article>
+    {% elif motivo_rechazo %}
+    <article class="admin-qr-resultado admin-qr-resultado-rechazado" role="alert">
+        <div class="admin-qr-icono" aria-hidden="true">✖</div>
+        <h2>QR rechazado</h2>
+        <p class="admin-qr-detalle">{{ motivo_rechazo }}</p>
+    </article>
+    {% endif %}
+
+    {% if qr_token %}
+    <section class="admin-panel">
+        <h2>Confirmar lectura de entrada</h2>
+        <p>Presioná el botón para registrar el ingreso en la puerta de la sala.</p>
+
+        <form
+            class="admin-edit-form"
+            method="post"
+            action="{{ url_for('admin.validar_qr', qr_token=qr_token) }}"
+        >
+            <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit">
+                    Validar ingreso
+                </button>
+                <a class="btn btn-outline" href="{{ url_for('admin.ingresar_qr') }}">
+                    Ver listado de entradas
+                </a>
+                <a class="btn btn-outline" href="{{ url_for('admin.index') }}">
+                    Volver al Backoffice
+                </a>
+            </div>
+        </form>
+    </section>
+    {% else %}
+    <section class="admin-panel" aria-labelledby="compras-qr-heading">
+        <div class="admin-panel-header">
+            <div>
+                <h2 id="compras-qr-heading">Entradas con QR</h2>
+                <p>Compras pagadas, usadas y canceladas ordenadas por fecha de función.</p>
+            </div>
+            <span class="admin-status">Mostrando {{ compras | length }}</span>
+        </div>
+
+        <div class="admin-table-scroll">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Compra</th>
+                        <th scope="col">QR</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Película</th>
+                        <th scope="col">Sala / local</th>
+                        <th scope="col">Función</th>
+                        <th scope="col">Butacas</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for compra in compras %}
+                    <tr>
+                        <td>#{{ compra.id_compra }}</td>
+                        <td>
+                            {% if compra.qr_imagen %}
+                            <img
+                                class="admin-qr-miniatura"
+                                src="data:image/png;base64,{{ compra.qr_imagen }}"
+                                alt="QR compra #{{ compra.id_compra }}"
+                            >
+                            {% else %}
+                            <span class="admin-qr-sin-imagen">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="admin-cliente-cell">
+                                <span>{{ compra.cliente_nombre }}</span>
+                                <span class="admin-cliente-email">{{ compra.cliente_email }}</span>
+                            </div>
+                        </td>
+                        <td>{{ compra.pelicula }}</td>
+                        <td>{{ compra.sala }} · {{ compra.local }}</td>
+                        <td>{{ compra.fecha_hora_funcion | fecha_legible }}</td>
+                        <td>{{ compra.butacas | join(', ') if compra.butacas else '-' }}</td>
+                        <td>
+                            <span class="admin-badge admin-badge-{{ compra.estado }}">
+                                {{ compra.estado | capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="admin-row-actions">
+                                <form method="post" action="{{ url_for('admin.ingresar_qr') }}">
+                                    <input type="hidden" name="id_compra" value="{{ compra.id_compra }}">
+                                    <button class="btn btn-sm btn-primary" type="submit">
+                                        Simular escaneo
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td class="admin-empty-cell" colspan="9">
+                            No hay compras con QR emitidos para mostrar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</section>
+{% endblock %}

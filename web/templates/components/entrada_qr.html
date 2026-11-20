@@ -1,0 +1,18 @@
+<section class="entrada-qr" aria-labelledby="entrada-qr-titulo">
+    <h2 class="entrada-qr-titulo" id="entrada-qr-titulo">Tu entrada digital</h2>
+
+    <div class="entrada-qr-imagen">
+        {% if qr_imagen %}
+        <img src="data:image/png;base64,{{ qr_imagen }}" alt="Código QR de la compra {{ compra.id_compra }}">
+        {% else %}
+        <span class="entrada-qr-pendiente">El QR llega a tu correo</span>
+        {% endif %}
+    </div>
+
+    <p class="entrada-qr-ayuda">Presentá este QR en el acceso a la sala</p>
+
+    <a href="{{ url_for('compras.cancelar', id_compra=compra.id_compra) }}" class="btn btn-sm btn-peligro">
+        Cancelar entrada
+    </a>
+    <p class="entrada-qr-plazo">Podés cancelar hasta {{ horas_limite }} horas antes de la función</p>
+</section>

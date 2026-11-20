@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Estadísticas - Backoffice{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% macro barra(porcentaje) %}
+<div class="admin-barra" aria-hidden="true">
+    <span class="admin-barra-relleno" style="width: {{ porcentaje }}%"></span>
+</div>
+{% endmacro %}
+
+{% macro tabla_entradas(filas, columna, titulo_columna) %}
+<div class="admin-table-scroll">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th scope="col">{{ titulo_columna }}</th>
+                <th scope="col">Entradas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in filas %}
+            <tr>
+                <td>{{ fila[columna] }}</td>
+                <td>
+                    {{ fila.entradas }}
+                    {{ barra(fila.entradas * 100 / filas[0].entradas) }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td class="admin-empty-cell" colspan="2">Todavía no hay entradas vendidas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% block content %}
+<section class="admin-page">
+    <nav class="admin-breadcrumb" aria-label="Navegación del backoffice">
+        <a href="{{ url_for('admin.index') }}">Backoffice</a>
+        <span aria-hidden="true">/</span>
+        <span>Estadísticas</span>
+    </nav>
+
+    <header class="admin-page-header">
+        <p class="admin-eyebrow">Informes</p>
+        <h1>Estadísticas</h1>
+        <p>Las ventas son las entradas de compras pagadas o usadas. Las reservas pendientes no cuentan.</p>
+    </header>
+
+    {% if dashboard %}
+    <div class="admin-dashboard">
+        <section class="admin-panel" aria-labelledby="ocupacion-funcion-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="ocupacion-funcion-heading">Ocupación por función</h2>
+                    <p>Entradas vendidas sobre la capacidad de la sala.</p>
+                </div>
+                <span class="admin-status">{{ dashboard.ocupacion_por_funcion | length }} funciones</span>
+            </div>
+
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Sala / local</th>
+                            <th scope="col">Fecha y hora</th>
+                            <th scope="col">Vendidas</th>
+                            <th scope="col">Ocupación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for funcion in dashboard.ocupacion_por_funcion %}
+                        <tr>
+                            <td>{{ funcion.pelicula }}</td>
+                            <td>{{ funcion.sala }} · {{ funcion.local }}</td>
+                            <td>{{ funcion.fecha_hora | fecha_legible }}</td>
+                            <td>{{ funcion.vendidas }} / {{ funcion.capacidad }}</td>
+                            <td>
+                                {{ funcion.porcentaje }}%
+                                {{ barra(funcion.porcentaje) }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="5">No hay funciones programadas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="admin-panel" aria-labelledby="ocupacion-pelicula-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="ocupacion-pelicula-heading">Ocupación por película</h2>
+                    <p>Suma de todas las funciones de cada película.</p>
+                </div>
+            </div>
+
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Funciones</th>
+                            <th scope="col">Vendidas</th>
+                            <th scope="col">Ocupación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pelicula in dashboard.ocupacion_por_pelicula %}
+                        <tr>
+                            <td>{{ pelicula.pelicula }}</td>
+                            <td>{{ pelicula.funciones }}</td>
+                            <td>{{ pelicula.vendidas }} / {{ pelicula.capacidad }}</td>
+                            <td>
+                                {{ pelicula.porcentaje }}%
+                                {{ barra(pelicula.porcentaje) }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="4">No hay películas con funciones.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="admin-dashboard-grid">
+            <section class="admin-panel" aria-labelledby="generos-heading">
+                <div class="admin-panel-header">
+                    <h2 id="generos-heading">Ventas por género</h2>
+                </div>
+                {{ tabla_entradas(dashboard.ventas_por_genero, 'genero', 'Género') }}
+            </section>
+
+            <section class="admin-panel" aria-labelledby="franjas-heading">
+                <div class="admin-panel-header">
+                    <h2 id="franjas-heading">Franjas horarias más vendidas</h2>
+                </div>
+                {{ tabla_entradas(dashboard.franjas_horarias, 'hora', 'Hora de inicio') }}
+            </section>
+        </div>
+
+        <section class="admin-panel" aria-labelledby="cancelaciones-heading">
+            <div class="admin-panel-header">
+                <div>
+                    <h2 id="cancelaciones-heading">Cancelaciones</h2>
+                    <p>Compras pagadas que se cancelaron dentro del plazo.</p>
+                </div>
+                <span class="admin-status">Total: {{ dashboard.cancelaciones.total }}</span>
+            </div>
+
+            <div class="admin-table-scroll">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Película</th>
+                            <th scope="col">Cancelaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pelicula in dashboard.cancelaciones.por_pelicula %}
+                        <tr>
+                            <td>{{ pelicula.pelicula }}</td>
+                            <td>{{ pelicula.cancelaciones }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td class="admin-empty-cell" colspan="2">No hubo cancelaciones.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
