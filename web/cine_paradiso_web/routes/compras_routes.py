@@ -124,6 +124,11 @@ def listar():
         else:
             compra['qr_imagen'] = None
 
+        if compra.get('estado') == ESTADO_PENDIENTE and compra.get('vence_en'):
+            compra['segundos_restantes'] = segundos_para_vencer(compra)
+            if compra['segundos_restantes'] == 0:
+                compra['estado'] = 'vencida'
+
     return render_template(
         'compras/mis_entradas.html',
         compras=compras,

@@ -57,7 +57,12 @@
                 </div>
 
                 <div class="mis-entradas-acciones">
-                    {% if compra.puede_cancelar %}
+                    {% if compra.estado == 'pendiente' %}
+                    <p class="checkout-aviso" data-segundos="{{ compra.segundos_restantes }}">Tenés <span class="checkout-contador"></span> para completar el pago</p>
+                    <form method="post" action="{{ url_for('compras.confirmar', id_compra=compra.id_compra) }}">
+                        <button class="btn btn-primary btn-sm" type="submit" data-confirmar>Pagar ahora</button>
+                    </form>
+                    {% elif compra.puede_cancelar %}
                     <a
                         href="{{ url_for('compras.cancelar', id_compra=compra.id_compra) }}"
                         class="btn btn-sm btn-peligro"
@@ -100,4 +105,5 @@
     </div>
     {% endif %}
 </section>
+<script src="{{ url_for('static', filename='js/checkout.js') }}" defer></script>
 {% endblock %}

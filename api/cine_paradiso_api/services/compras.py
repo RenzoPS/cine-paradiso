@@ -573,6 +573,7 @@ def listar_compras(args, id_usuario: int) -> dict:
             'id_compra': compra['id_compra'],
             'estado': estado,
             'fecha_hora': formatear_fecha_hora(compra['fecha_hora']),
+            'vence_en': formatear_fecha_hora(compra['fecha_hora'] + timedelta(minutes=MINUTOS_RESERVA)) if estado == ESTADO_PENDIENTE else None,
             'funcion': {
                 'id_funcion': compra['id_funcion'],
                 'pelicula': compra['pelicula'],

@@ -2042,6 +2042,7 @@ components:
         - id_compra
         - estado
         - fecha_hora
+        - vence_en
         - funcion
         - butacas
         - servicios
@@ -2062,6 +2063,12 @@ components:
           type: string
           format: date-time
           example: '2026-11-17T12:17:42-03:00'
+        vence_en:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fin de la reserva. Solo mientras la compra está pendiente; en otro estado es `null`.
+          example: '2026-11-17T12:27:42-03:00'
         funcion:
           type: object
           required:
