@@ -92,6 +92,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Compra</th>
+                        <th scope="col">QR</th>
                         <th scope="col">Cliente</th>
                         <th scope="col">Película</th>
                         <th scope="col">Sala / local</th>
@@ -105,6 +106,17 @@
                     {% for compra in compras %}
                     <tr>
                         <td>#{{ compra.id_compra }}</td>
+                        <td>
+                            {% if compra.qr_imagen %}
+                            <img
+                                class="admin-qr-miniatura"
+                                src="data:image/png;base64,{{ compra.qr_imagen }}"
+                                alt="QR compra #{{ compra.id_compra }}"
+                            >
+                            {% else %}
+                            <span class="admin-qr-sin-imagen">—</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="admin-cliente-cell">
                                 <span>{{ compra.cliente_nombre }}</span>
@@ -133,7 +145,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td class="admin-empty-cell" colspan="8">
+                        <td class="admin-empty-cell" colspan="9">
                             No hay compras con QR emitidos para mostrar.
                         </td>
                     </tr>
