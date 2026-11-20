@@ -30,6 +30,7 @@ from ..constants import (
     HORAS_LIMITE_CANCELACION,
     MINUTOS_APERTURA_SALA,
     MINUTOS_RESERVA,
+    ROL_ADMIN,
     TZ_ARG,
     WEB_URL,
 )
@@ -297,12 +298,18 @@ def generar_qr_de_compra(id_compra: int) -> BytesIO:
     return generar_imagen_qr(generar_token_qr(id_compra))
 
 
-def obtener_qr_de_compra(id_compra, id_usuario: int) -> BytesIO:
+def obtener_qr_de_compra(id_compra, id_usuario: int, rol: str | None = None) -> BytesIO:
     """
-    QR de una compra del usuario logueado.
+    QR de una compra. El cliente solo accede a sus compras; el admin a cualquiera.
     """
     id_validado = validar_id_compra(id_compra)
-    _obtener_compra_propia(id_validado, id_usuario)
+
+    if rol == ROL_ADMIN:
+        if db_compras.obtener_compra_por_id(id_validado) is None:
+            raise _error_compra_no_encontrada(id_validado)
+    else:
+        _obtener_compra_propia(id_validado, id_usuario)
+
     return generar_qr_de_compra(id_validado)
 
 
