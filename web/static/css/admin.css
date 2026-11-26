@@ -147,6 +147,17 @@ a.admin-card:focus-visible {
     gap: 0.5rem;
 }
 
+.admin-row-actions .admin-btn-cancelar {
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.admin-row-actions .admin-btn-cancelar:hover,
+.admin-row-actions .admin-btn-cancelar:focus-visible {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+}
+
 .admin-row-actions form {
     margin: 0;
 }
