@@ -60,6 +60,7 @@ def _construir_filtros(filtros: dict) -> tuple[str, dict]:
         condiciones_funcion = [
             'f.fk_id_pelicula = p.id_pelicula',
             f'f.fecha_hora > {ahora_argentina}',
+            'f.cancelada = FALSE',
         ]
         join_salas = ''
 

@@ -9,8 +9,10 @@ def listar_funciones(filtros: dict | None = None) -> dict:
     )
 
 
-def listar_todas_funciones(filtros: dict | None = None) -> dict:
+def listar_todas_funciones(filtros: dict | None = None, incluir_canceladas: bool = False) -> dict:
     parametros = dict(filtros or {})
+    if incluir_canceladas:
+        parametros['incluir_canceladas'] = 'true'
     parametros.update({'_limit': 100, '_offset': 0})
     respuesta = listar_funciones(parametros)
     funciones = list(respuesta['funciones'])
@@ -53,4 +55,18 @@ def actualizar_funcion(id_funcion: int, datos: dict) -> dict:
         'PUT',
         f'funciones/{id_funcion}',
         json=datos,
+    )
+
+
+def cancelar_funcion(id_funcion: int) -> dict:
+    return llamar_api(
+        'POST',
+        f'funciones/{id_funcion}/cancelar',
+    )
+
+
+def preview_cancelar_funcion(id_funcion: int) -> dict:
+    return llamar_api(
+        'GET',
+        f'funciones/{id_funcion}/cancelar/preview',
     )

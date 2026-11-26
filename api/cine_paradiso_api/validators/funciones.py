@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-PARAMETROS_FILTRO_LISTADO = {'id_pelicula', 'id_local', 'fecha'}
+PARAMETROS_FILTRO_LISTADO = {'id_pelicula', 'id_local', 'fecha', 'incluir_canceladas'}
 CAMPOS_FUNCION = {'id_pelicula', 'id_sala', 'fecha_hora', 'precio'}
 PRECIO_MAXIMO = Decimal('99999999.99')
 
@@ -44,6 +44,11 @@ def validar_parametros_listado_funciones(args) -> tuple[int, int, dict]:
                 description="El parametro 'fecha' debe usar el formato YYYY-MM-DD"
             )
         filtros['fecha'] = fecha.date()
+
+    if args.get('incluir_canceladas') is not None:
+        # Convertir a boolean: 'true', '1', 'yes' -> True; cualquier otro -> False
+        valor = str(args.get('incluir_canceladas')).lower()
+        filtros['incluir_canceladas'] = valor in ('true', '1', 'yes', 'on')
 
     return limit, offset, filtros
 

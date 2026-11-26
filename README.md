@@ -268,10 +268,28 @@ HTTPS.
 `GET /funciones` devuelve solo funciones futuras, ordenadas por fecha y hora.
 Admite filtros por `id_pelicula`, `id_local` y `fecha` (`YYYY-MM-DD` en GMT-3).
 Para hoy solo incluye funciones posteriores al momento actual; una fecha anterior
-a hoy devuelve un listado vacío. La respuesta incluye los identificadores y
-nombres de película, sala y local, la dirección del local, el póster y duración
-de la película, la fecha/hora y el precio. `GET /funciones/{id_funcion}` devuelve
-el mismo formato para una función; si no existe, responde `404`.
+a hoy devuelve un listado vacío. Opcionalmente se puede pasar `incluir_canceladas=true`
+para que el administrador vea también las funciones canceladas (por defecto `false`).
+La respuesta incluye los identificadores y nombres de película, sala y local, la
+dirección del local, el póster y duración de la película, la fecha/hora y el precio.
+El campo `cancelada` indica si la función fue cancelada por el administrador.
+`GET /funciones/{id_funcion}` devuelve el mismo formato para una función; si no
+existe, responde `404`.
+
+`POST /funciones/{id_funcion}/cancelar` (Admin) cancela una función completa:
+marca la función como cancelada, cancela todas sus compras pagadas o pendientes
+(estado `cancelada` con `cancelada_por = admin`), libera las butacas y envía
+un mail a cada cliente afectado. Todo se ejecuta en una sola transacción; los
+mails se envían después. Solo se pueden cancelar funciones que no hayan empezado.
+Si la función no existe, responde `404`; si ya está cancelada o ya empezó,
+responde `409`. Devuelve `200` con el número de compras canceladas y mails
+enviados.
+
+`GET /funciones/{id_funcion}/cancelar/preview` (Admin) devuelve una vista
+previa de la cancelación sin ejecutarla: número de compras que se cancelarían
+y detalle de cada una (id y estado). Útil para que el administrador confirme
+antes de cancelar. Mismas validaciones que la cancelación real: `404` si no
+existe, `409` si ya cancelada o ya empezó.
 
 El `POST /funciones` y el `PUT /funciones/{id_funcion}` requieren los cuatro
 campos `id_pelicula`, `id_sala`, `fecha_hora` y `precio`. La película debe tener

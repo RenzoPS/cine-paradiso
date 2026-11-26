@@ -4,9 +4,11 @@ from ..seguridad import verificar_administrador
 from ..services.funciones import (
     actualizar_funcion,
     buscar_funcion,
+    cancelar_funcion,
     crear_funcion,
     listar_funciones,
     listar_salas,
+    preview_cancelar_funcion,
 )
 
 funciones_bp = Blueprint('funciones', __name__)
@@ -38,3 +40,15 @@ def put_funcion(id_funcion):
 def obtener_salas():
     verificar_administrador()
     return jsonify(listar_salas())
+
+
+@funciones_bp.route('/funciones/<id_funcion>/cancelar', methods=['POST'])
+def post_cancelar_funcion(id_funcion):
+    verificar_administrador()
+    return jsonify(cancelar_funcion(id_funcion))
+
+
+@funciones_bp.route('/funciones/<id_funcion>/cancelar/preview', methods=['GET'])
+def get_preview_cancelar_funcion(id_funcion):
+    verificar_administrador()
+    return jsonify(preview_cancelar_funcion(id_funcion))

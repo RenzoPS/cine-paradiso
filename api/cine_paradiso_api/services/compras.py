@@ -426,6 +426,14 @@ def crear_compra(body, id_usuario: int) -> dict:
     funcion = buscar_funcion(id_funcion)
     ahora = _ahora()
 
+    if funcion.get('cancelada'):
+        raise ErrorAPI(
+            code='funcion.cancelada',
+            message='Función cancelada',
+            description='No se pueden reservar butacas de una función cancelada',
+            status=409,
+        )
+
     try:
         with transaccion() as conexion:
             if db_compras.bloquear_funcion(conexion, id_funcion) <= ahora:

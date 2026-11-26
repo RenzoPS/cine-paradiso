@@ -23,10 +23,12 @@ from cine_paradiso_web.services.peliculas_service import (
 )
 from cine_paradiso_web.services.funciones_service import (
     actualizar_funcion as guardar_funcion,
+    cancelar_funcion as cancelar_funcion_admin,
     crear_funcion as programar_funcion,
     listar_salas,
     listar_todas_funciones,
     obtener_funcion,
+    preview_cancelar_funcion as preview_cancelar_funcion_service,
 )
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -269,7 +271,7 @@ def funciones():
         return redireccion
 
     try:
-        respuesta = listar_todas_funciones()
+        respuesta = listar_todas_funciones(incluir_canceladas=True)
     except ApiError as error:
         flash(error.mensaje, 'error')
         funciones_disponibles = []
@@ -465,6 +467,36 @@ def validar_qr(qr_token):
         resultado_valido=resultado_valido,
         motivo_rechazo=motivo_rechazo,
     )
+
+
+@admin_bp.route('/funciones/<int:id_funcion>/cancelar', methods=['POST'])
+def cancelar_funcion(id_funcion):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    try:
+        resultado = cancelar_funcion_admin(id_funcion)
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+    else:
+        flash(f'La función #{id_funcion} se canceló. {resultado["compras_canceladas"]} compras canceladas, {resultado["mails_enviados"]} mails enviados.', 'success')
+        if resultado['mails_enviados'] < resultado['compras_canceladas']:
+            flash('Algunos mails de aviso no pudieron enviarse.', 'warning')
+
+    return redirect(url_for('admin.funciones'))
+
+
+@admin_bp.route('/funciones/<int:id_funcion>/cancelar/preview', methods=['GET'])
+def preview_cancelar_funcion(id_funcion):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+    try:
+        resultado = preview_cancelar_funcion_service(id_funcion)
+        return jsonify(resultado)
+    except ApiError as error:
+        return jsonify({'errors': [{'message': error.mensaje}]}), error.status
 
 
 

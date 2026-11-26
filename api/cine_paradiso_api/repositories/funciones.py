@@ -1,6 +1,10 @@
 from sqlalchemy import text
 
 from . import ejecutar_consulta, ejecutar_escalar, fila_a_dict
+from ..constants import (
+    ESTADO_PAGADA,
+    ESTADO_PENDIENTE,
+)
 
 CAMPOS_FUNCION = '''
     f.id_funcion,
@@ -14,7 +18,8 @@ CAMPOS_FUNCION = '''
     l.nombre AS local,
     l.direccion,
     f.fecha_hora,
-    f.precio
+    f.precio,
+    f.cancelada
 '''
 
 TABLAS_FUNCION = '''
@@ -26,8 +31,13 @@ TABLAS_FUNCION = '''
 
 
 def _construir_filtros(filtros: dict) -> tuple[str, dict]:
-    condiciones = ['f.fecha_hora > UTC_TIMESTAMP() - INTERVAL 3 HOUR']
+    condiciones = [
+        'f.fecha_hora > UTC_TIMESTAMP() - INTERVAL 3 HOUR',
+    ]
     parametros = {}
+
+    if not filtros.get('incluir_canceladas'):
+        condiciones.append('f.cancelada = FALSE')
 
     if filtros.get('id_pelicula') is not None:
         condiciones.append('f.fk_id_pelicula = :id_pelicula')
@@ -146,6 +156,7 @@ def obtener_funcion_superpuesta(
             JOIN peliculas p ON p.id_pelicula = f.fk_id_pelicula
             WHERE f.fk_id_sala = :id_sala
               {excluir_funcion}
+              AND f.cancelada = FALSE
               AND f.fecha_hora < :fin
               AND CASE
                     WHEN p.duracion_min IS NULL OR p.duracion_min < 1
@@ -215,4 +226,33 @@ def actualizar_funcion_sql(conexion, id_funcion: int, datos: dict) -> None:
             '''
         ),
         {**datos, 'id_funcion': id_funcion},
+    )
+
+
+def compras_cancelables(conexion, id_funcion: int) -> list[dict]:
+    """Compras pagadas o pendientes de una función (para cancelar). Con FOR UPDATE."""
+    resultado = conexion.execute(
+        text(
+            '''
+            SELECT id_compra, fk_id_funcion, estado
+            FROM compras
+            WHERE fk_id_funcion = :id_funcion
+              AND estado IN (:estado_pagada, :estado_pendiente)
+            FOR UPDATE
+            '''
+        ),
+        {
+            'id_funcion': id_funcion,
+            'estado_pagada': ESTADO_PAGADA,
+            'estado_pendiente': ESTADO_PENDIENTE,
+        },
+    )
+    return [fila_a_dict(fila) for fila in resultado]
+
+
+def marcar_funcion_cancelada(conexion, id_funcion: int) -> None:
+    """Marca la función como cancelada (ya no se vende)."""
+    conexion.execute(
+        text('UPDATE funciones SET cancelada = TRUE WHERE id_funcion = :id_funcion'),
+        {'id_funcion': id_funcion},
     )
