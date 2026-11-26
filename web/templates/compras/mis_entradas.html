@@ -40,6 +40,11 @@
                                 {{ compra.estado | capitalize }}
                             </span>
                         </div>
+                        {% if compra.cancelada_por == 'admin' %}
+                        <p class="mis-entradas-meta">Cancelada por el cine. Te avisamos por mail.</p>
+                        {% elif compra.cancelada_por == 'cliente' %}
+                        <p class="mis-entradas-meta">La cancelaste vos.</p>
+                        {% endif %}
                         <p class="mis-entradas-meta">{{ compra.funcion.local }} · {{ compra.funcion.sala }}</p>
                         <p class="mis-entradas-meta">{{ compra.funcion.fecha_hora | fecha_legible }}</p>
                         {% if compra.butacas %}
