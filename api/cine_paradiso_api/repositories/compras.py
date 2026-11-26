@@ -251,7 +251,7 @@ def liberar_reservas_vencidas(conexion, id_funcion: int, limite_reserva: datetim
             JOIN compras c ON c.id_compra = e.fk_id_compra
             WHERE c.fk_id_funcion = :id_funcion
               AND c.estado = :estado_pendiente
-              AND c.fecha_creacion <= :limite_reserva
+              AND c.fecha_hora <= :limite_reserva
         """),
         parametros,
     )
@@ -261,7 +261,7 @@ def liberar_reservas_vencidas(conexion, id_funcion: int, limite_reserva: datetim
             SET estado = :estado_vencida
             WHERE fk_id_funcion = :id_funcion
               AND estado = :estado_pendiente
-              AND fecha_creacion <= :limite_reserva
+              AND fecha_hora <= :limite_reserva
         """),
         parametros,
     )

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from cine_paradiso_web.constants import TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.seguridad import verificar_administrador
@@ -496,7 +496,7 @@ def preview_cancelar_funcion(id_funcion):
         resultado = preview_cancelar_funcion_service(id_funcion)
         return jsonify(resultado)
     except ApiError as error:
-        return jsonify({'errors': [{'message': error.mensaje}]}), error.status
+        return jsonify({'errors': [{'message': error.mensaje}]}), error.status_code or 500
 
 
 

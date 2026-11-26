@@ -209,8 +209,6 @@ def cancelar_funcion(id_funcion) -> dict:
 
     # 2. Obtener compras cancelables (pagadas + pendientes) y validaciones
     with transaccion() as conexion:
-        # Bloquear la función para evitar race conditions
-        db_compras.bloquear_funcion(conexion, id_validado)
         
         # Verificar que la función existe
         funcion = db_funciones.obtener_funcion_por_id(id_validado)
@@ -221,6 +219,7 @@ def cancelar_funcion(id_funcion) -> dict:
                 description=f'No existe una función con id {id_validado}',
                 status=404,
             )
+        db_compras.bloquear_funcion(conexion, id_validado)
         
         # Verificar que no esté ya cancelada
         if funcion.get('cancelada'):
@@ -233,7 +232,7 @@ def cancelar_funcion(id_funcion) -> dict:
         
         # Verificar que no haya empezado
         from datetime import datetime
-        ahora = datetime.now()
+        ahora = db_funciones.obtener_hora_actual(conexion)
         # Convertir fecha_hora a datetime si es string
         fecha_funcion = funcion['fecha_hora']
         if isinstance(fecha_funcion, str):
@@ -297,7 +296,6 @@ def preview_cancelar_funcion(id_funcion) -> dict:
 
     # 2. Obtener compras cancelables
     with transaccion() as conexion:
-        db_compras.bloquear_funcion(conexion, id_validado)
         
         funcion = db_funciones.obtener_funcion_por_id(id_validado)
         if funcion is None:
@@ -307,6 +305,7 @@ def preview_cancelar_funcion(id_funcion) -> dict:
                 description=f'No existe una función con id {id_validado}',
                 status=404,
             )
+        db_compras.bloquear_funcion(conexion, id_validado)
         
         if funcion.get('cancelada'):
             raise ErrorAPI(
@@ -317,7 +316,7 @@ def preview_cancelar_funcion(id_funcion) -> dict:
             )
         
         from datetime import datetime
-        ahora = datetime.now()
+        ahora = db_funciones.obtener_hora_actual(conexion)
         fecha_funcion = funcion['fecha_hora']
         if isinstance(fecha_funcion, str):
             fecha_funcion = datetime.fromisoformat(fecha_funcion.replace('Z', '+00:00'))
