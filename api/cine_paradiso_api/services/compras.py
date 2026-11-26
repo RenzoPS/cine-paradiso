@@ -7,9 +7,12 @@ from sqlalchemy.exc import IntegrityError
 
 from ..constants import (
     BASE_URL,
+    CANCELADA_POR_ADMIN,
+    CANCELADA_POR_CLIENTE,
     ERROR_CODE_COMPRA_BUTACA_AJENA,
     ERROR_CODE_COMPRA_BUTACA_OCUPADA,
     ERROR_CODE_COMPRA_FUERA_DE_PLAZO,
+    ERROR_CODE_COMPRA_FUNCION_COMENZADA,
     ERROR_CODE_COMPRA_FUNCION_PASADA,
     ERROR_CODE_COMPRA_NO_ABANDONABLE,
     ERROR_CODE_COMPRA_NO_CANCELABLE,ERROR_CODE_COMPRA_NO_CONFIRMABLE,
@@ -41,11 +44,12 @@ from ..utils import ErrorAPI, formatear_fecha_hora, rechazar_campos_desconocidos
 from ..validators.compras import validar_cuerpo_compra, validar_cuerpo_validacion_qr, validar_id_compra
 from .funciones import buscar_funcion
 from . import mail as mail_service
-from .mail_plantillas import CONFIRMACION_COMPRA
+from .mail_plantillas import CANCELACION_ADMIN, CONFIRMACION_COMPRA
 from .qr import error_qr_invalido, generar_imagen_qr, generar_token_qr, leer_token_qr
 
 ESTADOS_CON_QR = (ESTADO_PAGADA, ESTADO_USADA)
 ESTADOS_CON_FACTURA = (ESTADO_PAGADA, ESTADO_USADA, ESTADO_CANCELADA)
+ESTADOS_CANCELABLES_POR_ADMIN = (ESTADO_PAGADA, ESTADO_PENDIENTE)
 
 logger = logging.getLogger(__name__)
 
@@ -399,6 +403,7 @@ def listar_compras_para_validacion_admin() -> dict:
         items.append({
             'id_compra': compra['id_compra'],
             'estado': compra['estado'],
+            'cancelada_por': compra['cancelada_por'],
             'fecha_compra': formatear_fecha_hora(compra['fecha_compra']),
             'pelicula': compra['pelicula'],
             'sala': compra['sala'],
@@ -532,11 +537,96 @@ def cancelar_compra(id_compra, id_usuario: int) -> dict:
         if compra_bloqueada['estado'] != ESTADO_PAGADA:
             raise _error_no_cancelable(compra_bloqueada['estado'])
 
-        db_compras.marcar_compra_cancelada(conexion, id_validado)
+        db_compras.marcar_compra_cancelada(conexion, id_validado, CANCELADA_POR_CLIENTE)
         db_compras.eliminar_entradas_de_compra(conexion, id_validado)
 
     return {'id_compra': id_validado, 'estado': ESTADO_CANCELADA}
 
+
+def _error_no_cancelable_admin(estado: str) -> ErrorAPI:
+    return ErrorAPI(
+        code=ERROR_CODE_COMPRA_NO_CANCELABLE,
+        message='La compra no se puede cancelar',
+        description=f"La compra esta en estado '{estado}' y el admin solo cancela las pagadas o pendientes",
+        status=409,
+    )
+
+
+def cancelar_compra_admin(id_compra) -> dict:
+    """
+    El administrador cancela una compra pagada o pendiente de cualquier cliente. No aplica el limite de 24 horas del cliente, pero la funcion no tiene que haber empezado.
+    La compra queda cancelada, sus butacas quedan libres y al cliente le llega un mail.
+    """
+    id_validado = validar_id_compra(id_compra)
+    compra = db_compras.obtener_compra_por_id(id_validado)
+
+    if compra is None:
+        raise _error_compra_no_encontrada(id_validado)
+
+    if compra['estado'] == ESTADO_PENDIENTE:
+        vencer_reservas_de_funcion(compra['fk_id_funcion'])
+        compra = db_compras.obtener_compra_por_id(id_validado)
+
+    if compra['estado'] not in ESTADOS_CANCELABLES_POR_ADMIN:
+        raise _error_no_cancelable_admin(compra['estado'])
+
+    fecha_hora_funcion = db_compras.obtener_fecha_hora_funcion(compra['fk_id_funcion'])
+
+    if _ahora() >= fecha_hora_funcion:
+        raise ErrorAPI(
+            code=ERROR_CODE_COMPRA_FUNCION_COMENZADA,
+            message='La funcion ya comenzo',
+            description='No se puede cancelar una compra de una funcion que ya empezo',
+            status=409,
+        )
+
+    datos_mail = db_compras.obtener_datos_para_mail(id_validado)
+    entradas = db_compras.obtener_entradas_de_compra(id_validado)
+
+    with transaccion() as conexion:
+        compra_bloqueada = db_compras.bloquear_compra(conexion, id_validado)
+        if compra_bloqueada is None:
+            raise _error_compra_no_encontrada(id_validado)
+        if compra_bloqueada['estado'] not in ESTADOS_CANCELABLES_POR_ADMIN:
+            raise _error_no_cancelable_admin(compra_bloqueada['estado'])
+
+        db_compras.marcar_compra_cancelada(conexion, id_validado, CANCELADA_POR_ADMIN)
+        db_compras.eliminar_entradas_de_compra(conexion, id_validado)
+
+    tenia_qr = compra_bloqueada['estado'] == ESTADO_PAGADA
+    mail_enviado = _enviar_mail_cancelacion_admin(id_validado, datos_mail, entradas, tenia_qr)
+
+    return {
+        'id_compra': id_validado,
+        'estado': ESTADO_CANCELADA,
+        'cancelada_por': CANCELADA_POR_ADMIN,
+        'mail_enviado': mail_enviado,
+    }
+
+
+def _enviar_mail_cancelacion_admin(id_compra: int, datos: dict, entradas: list[dict], tenia_qr: bool) -> bool:
+    """
+    Avisa al cliente que el cine le cancelo la compra. Devuelve False si falla: la cancelacion no se deshace.
+    """
+    try:
+        cuerpo_mail = mail_service.armar_mail(CANCELACION_ADMIN, {
+            'id_compra': id_compra,
+            'pelicula': datos['titulo'],
+            'sala': datos['sala'],
+            'fecha_hora': datos['fecha_hora'].strftime('%d/%m/%Y %H:%M'),
+            'butacas': _texto_butacas(entradas),
+            'tenia_qr': tenia_qr,
+        })
+
+        return mail_service.enviar_mail(
+            datos['email'],
+            f'Cine Paradiso - Tu compra N° {id_compra} fue cancelada',
+            cuerpo_mail,
+        )
+    except Exception:
+        logger.exception('No se pudo armar el mail de cancelacion de la compra %s', id_compra)
+
+        return False
 
 def listar_compras(args, id_usuario: int) -> dict:
     """
@@ -572,6 +662,7 @@ def listar_compras(args, id_usuario: int) -> dict:
         items.append({
             'id_compra': compra['id_compra'],
             'estado': estado,
+            'cancelada_por': compra['cancelada_por'],
             'fecha_hora': formatear_fecha_hora(compra['fecha_hora']),
             'vence_en': formatear_fecha_hora(compra['fecha_hora'] + timedelta(minutes=MINUTOS_RESERVA)) if estado == ESTADO_PENDIENTE else None,
             'funcion': {
