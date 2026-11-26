@@ -6,6 +6,7 @@ from cine_paradiso_web.constants import TOKEN_COOKIE_NOMBRE
 from cine_paradiso_web.seguridad import verificar_administrador
 from cine_paradiso_web.services.api_service import ApiError
 from cine_paradiso_web.services.compras import (
+    cancelar_compra_admin,
     listar_compras_validacion_admin,
     obtener_qr_base64,
     validar_ingreso_por_id_compra,
@@ -423,6 +424,23 @@ def ingresar_qr():
         resultado_valido=resultado_valido,
         motivo_rechazo=motivo_rechazo,
     )
+
+@admin_bp.route('/compras/<int:id_compra>/cancelar', methods=['POST'])
+def cancelar_compra(id_compra):
+    redireccion = verificar_administrador()
+    if redireccion:
+        return redireccion
+
+    try:
+        resultado = cancelar_compra_admin(id_compra)
+    except ApiError as error:
+        flash(error.mensaje, 'error')
+    else:
+        flash(f'La compra #{id_compra} se canceló y sus butacas quedaron libres.', 'success')
+        if not resultado.get('mail_enviado'):
+            flash('No se pudo enviar el mail de aviso al cliente.',  'warning')
+
+    return redirect(url_for('admin.ingresar_qr'))
 
 
 @admin_bp.route('/validar/<qr_token>', methods=['GET', 'POST'])
