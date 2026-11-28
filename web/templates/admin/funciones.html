@@ -54,10 +54,21 @@
                         <td>${{ funcion.precio }}</td>
                         <td>
                             <div class="admin-row-actions">
+                                {% if not funcion.cancelada %}
                                 <a class="btn btn-sm btn-outline"
                                    href="{{ url_for('admin.editar_funcion', id_funcion=funcion.id_funcion) }}">
                                     Editar
                                 </a>
+                                <form method="post"
+                                      action="{{ url_for('admin.cancelar_funcion', id_funcion=funcion.id_funcion) }}"
+                                      onsubmit="confirmarCancelacion(event, this, {{ funcion.id_funcion }});">
+                                    <button class="btn btn-sm btn-outline btn-danger" type="submit">
+                                        Cancelar
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="admin-badge admin-badge-cancelada">Cancelada</span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -73,4 +84,36 @@
         </div>
     </section>
 </section>
+
+<script>
+async function confirmarCancelacion(event, form, idFuncion) {
+    event.preventDefault();
+    if (await preguntarCancelacion(idFuncion)) {
+        form.submit();
+    }
+}
+
+async function preguntarCancelacion(idFuncion) {
+    try {
+        const response = await fetch(`/admin/funciones/${idFuncion}/cancelar/preview`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            alert('Error: ' + (error.errors?.[0]?.message || 'No se pudo obtener la vista previa'));
+            return false;
+        }
+        const data = await response.json();
+        const count = data.compras_a_cancelar || 0;
+        const mensaje = count > 0
+            ? `¿Estás seguro de que querés cancelar esta función? Se cancelarán ${count} compra${count > 1 ? 's' : ''} y se avisará a los clientes.`
+            : '¿Estás seguro de que querés cancelar esta función? No tiene compras asociadas.';
+        return confirm(mensaje);
+    } catch (e) {
+        console.error(e);
+        return confirm('¿Estás seguro de que querés cancelar esta función? Se cancelarán todas sus compras y se avisará a los clientes.');
+    }
+}
+</script>
 {% endblock %}

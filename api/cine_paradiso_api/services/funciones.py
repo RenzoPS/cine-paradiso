@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from ..constants import BASE_URL, MINUTOS_APERTURA_SALA, MINUTOS_LIMPIEZA_SALA
+from ..constants import BASE_URL, ESTADO_PAGADA, MINUTOS_APERTURA_SALA, MINUTOS_LIMPIEZA_SALA
 from ..paginacion import paginar
 from ..repositories import transaccion
 from ..repositories import funciones as db_funciones
@@ -144,6 +144,16 @@ def actualizar_funcion(id_funcion, body) -> dict:
         if id_sala_actual is None:
             raise _error_funcion_no_encontrada(id_validado)
 
+        # Verificar que la función no esté cancelada
+        funcion_actual = db_funciones.obtener_funcion_por_id(id_validado)
+        if funcion_actual and funcion_actual.get('cancelada'):
+            raise ErrorAPI(
+                code='funcion.cancelada',
+                message='Función cancelada',
+                description='No se puede editar una función que fue cancelada',
+                status=409,
+            )
+
         compra = db_funciones.obtener_compra_de_funcion(conexion, id_validado)
         if compra is not None:
             raise ErrorAPI(
@@ -172,3 +182,159 @@ def _error_funcion_no_encontrada(id_funcion: int) -> ErrorAPI:
         description=f'No existe una funcion con id {id_funcion}',
         status=404,
     )
+
+
+def cancelar_funcion(id_funcion) -> dict:
+    """
+    El administrador cancela una función completa: marca la función como cancelada,
+    cancela todas sus compras pagadas y pendientes, libera las butacas y envía
+    mail a cada cliente afectado. Todo en una sola transacción.
+    """
+    # Import interno para evitar import circular con services/compras.py
+    from .compras import (
+        vencer_reservas_de_funcion,
+        ESTADOS_CANCELABLES_POR_ADMIN,
+        ESTADO_PAGADA,
+        CANCELADA_POR_ADMIN,
+        _enviar_mail_cancelacion_admin,
+    )
+    from ..repositories import transaccion
+    from ..repositories import funciones as db_funciones
+    from ..repositories import compras as db_compras
+
+    id_validado = validar_id_funcion(id_funcion)
+
+    # 1. Vencer reservas viejas (lazy) para tener estados reales
+    vencer_reservas_de_funcion(id_validado)
+
+    # 2. Obtener compras cancelables (pagadas + pendientes) y validaciones
+    with transaccion() as conexion:
+        
+        # Verificar que la función existe
+        funcion = db_funciones.obtener_funcion_por_id(id_validado)
+        if funcion is None:
+            raise ErrorAPI(
+                code='funcion.not.found',
+                message='Función no encontrada',
+                description=f'No existe una función con id {id_validado}',
+                status=404,
+            )
+        db_compras.bloquear_funcion(conexion, id_validado)
+        
+        # Verificar que no esté ya cancelada
+        if funcion.get('cancelada'):
+            raise ErrorAPI(
+                code='funcion.ya.cancelada',
+                message='Función ya cancelada',
+                description='La función ya fue cancelada anteriormente',
+                status=409,
+            )
+        
+        # Verificar que no haya empezado
+        from datetime import datetime
+        ahora = db_funciones.obtener_hora_actual(conexion)
+        # Convertir fecha_hora a datetime si es string
+        fecha_funcion = funcion['fecha_hora']
+        if isinstance(fecha_funcion, str):
+            fecha_funcion = datetime.fromisoformat(fecha_funcion.replace('Z', '+00:00'))
+        if fecha_funcion <= ahora:
+            raise ErrorAPI(
+                code='funcion.ya.comenzo',
+                message='La función ya comenzó',
+                description='No se puede cancelar una función que ya empezó',
+                status=409,
+            )
+        
+        # Obtener compras cancelables con FOR UPDATE
+        compras = db_funciones.compras_cancelables(conexion, id_validado)
+
+        # 3. Leer datos para mail ANTES de borrar entradas
+        para_mail = []
+        for compra in compras:
+            para_mail.append((
+                compra['id_compra'],
+                db_compras.obtener_datos_para_mail(compra['id_compra']),
+                db_compras.obtener_entradas_de_compra(compra['id_compra']),
+                compra['estado'] == ESTADO_PAGADA,  # tenia_qr
+            ))
+
+        # 4. Marcar función cancelada + cancelar cada compra + liberar butacas
+        db_funciones.marcar_funcion_cancelada(conexion, id_validado)
+        for compra in compras:
+            db_compras.marcar_compra_cancelada(conexion, compra['id_compra'], CANCELADA_POR_ADMIN)
+            db_compras.eliminar_entradas_de_compra(conexion, compra['id_compra'])
+
+    # 5. Enviar mails (fuera de la transacción)
+    mails_enviados = 0
+    for id_compra, datos, entradas, tenia_qr in para_mail:
+        if _enviar_mail_cancelacion_admin(id_compra, datos, entradas, tenia_qr):
+            mails_enviados += 1
+
+    return {
+        'id_funcion': id_validado,
+        'cancelada': True,
+        'compras_canceladas': len(compras),
+        'mails_enviados': mails_enviados,
+    }
+
+
+def preview_cancelar_funcion(id_funcion) -> dict:
+    """
+    Preview de cancelación: cuenta cuántas compras se cancelarían sin ejecutar la cancelación.
+    """
+    from .compras import (
+        vencer_reservas_de_funcion,
+    )
+    from ..repositories import transaccion
+    from ..repositories import funciones as db_funciones
+    from ..repositories import compras as db_compras
+
+    id_validado = validar_id_funcion(id_funcion)
+
+    # 1. Vencer reservas viejas (lazy)
+    vencer_reservas_de_funcion(id_validado)
+
+    # 2. Obtener compras cancelables
+    with transaccion() as conexion:
+        
+        funcion = db_funciones.obtener_funcion_por_id(id_validado)
+        if funcion is None:
+            raise ErrorAPI(
+                code='funcion.not.found',
+                message='Función no encontrada',
+                description=f'No existe una función con id {id_validado}',
+                status=404,
+            )
+        db_compras.bloquear_funcion(conexion, id_validado)
+        
+        if funcion.get('cancelada'):
+            raise ErrorAPI(
+                code='funcion.ya.cancelada',
+                message='Función ya cancelada',
+                description='La función ya fue cancelada anteriormente',
+                status=409,
+            )
+        
+        from datetime import datetime
+        ahora = db_funciones.obtener_hora_actual(conexion)
+        fecha_funcion = funcion['fecha_hora']
+        if isinstance(fecha_funcion, str):
+            fecha_funcion = datetime.fromisoformat(fecha_funcion.replace('Z', '+00:00'))
+        if fecha_funcion <= ahora:
+            raise ErrorAPI(
+                code='funcion.ya.comenzo',
+                message='La función ya comenzó',
+                description='No se puede cancelar una función que ya empezó',
+                status=409,
+            )
+        
+        compras = db_funciones.compras_cancelables(conexion, id_validado)
+
+    return {
+        'id_funcion': id_validado,
+        'compras_a_cancelar': len(compras),
+        'detalle': [
+            {'id_compra': c['id_compra'], 'estado': c['estado']}
+            for c in compras
+        ],
+    }

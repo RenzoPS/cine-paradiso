@@ -43,6 +43,14 @@ paths:
           schema:
             type: string
             format: date
+        - name: incluir_canceladas
+          in: query
+          description: |
+            Si es 'true', incluye también las funciones canceladas en el listado.
+            Por defecto es 'false'. Solo accesible para administradores.
+          schema:
+            type: string
+            enum: ['true', 'false']
       responses:
         '200':
           description: Listado paginado de funciones disponibles.
@@ -240,6 +248,119 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}/cancelar:
+    post:
+      summary: Cancelar una función
+      description: |
+        Cancela una función y todas sus compras pagadas o pendientes.
+        Libera las butacas y envía un mail a cada cliente afectado.
+        Solo se pueden cancelar funciones que no hayan empezado.
+        Requiere una sesión válida con rol Admin.
+      operationId: post_cancelar_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Función cancelada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id_funcion:
+                    type: integer
+                  cancelada:
+                    type: boolean
+                  compras_canceladas:
+                    type: integer
+                  mails_enviados:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La función ya está cancelada o ya empezó.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /funciones/{id_funcion}/cancelar/preview:
+    get:
+      summary: Vista previa de cancelación de función
+      description: |
+        Devuelve cuántas compras se cancelarían si se cancela la función,
+        sin ejecutar la cancelación. Requiere una sesión válida con rol Admin.
+      operationId: get_preview_cancelar_funcion
+      tags:
+        - Funciones
+      security:
+        - TokenSesion: []
+      parameters:
+        - name: id_funcion
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Vista previa de la cancelación.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id_funcion:
+                    type: integer
+                  compras_a_cancelar:
+                    type: integer
+                  detalle:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id_compra:
+                          type: integer
+                        estado:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No existe una función con ese ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La función ya está cancelada o ya empezó.
           content:
             application/json:
               schema:
