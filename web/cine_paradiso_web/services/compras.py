@@ -113,6 +113,8 @@ def listar_compras_validacion_admin():
 def validar_ingreso_por_id_compra(id_compra):
     return llamar_api('POST', f'compras/{id_compra}/validar')
 
+def cancelar_compra_admin(id_compra):
+    return llamar_api('POST', f'compras/{id_compra}/cancelar-admin')
 
 def _motivo_del_error(respuesta, por_defecto=MOTIVO_POR_DEFECTO):
     try:

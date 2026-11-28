@@ -239,6 +239,7 @@ Viewer" de VS Code.
 | GET | `/compras/{id_compra}/factura` | Datos de la factura | Cliente |
 | GET | `/compras/{id_compra}/qr` | Imagen PNG del QR | Cliente |
 | POST | `/compras/{id_compra}/cancelar` | Cancela si está dentro del plazo y libera las butacas | Cliente |
+| POST | `/compras/{id_compra}/cancelar-admin` | El admin cancela una compra pagada o pendiente (sin el límite de 24 h, antes de que empiece la función), libera las butacas y le avisa al cliente por mail | Admin |
 | POST | `/compras/validar` | Valida el QR en el ingreso a la sala y marca la compra como `usada` | Admin |
 | GET | `/dashboard` | Indicadores del backoffice: ocupación por función y por película, ventas por género, franjas horarias y cancelaciones | Admin |
 

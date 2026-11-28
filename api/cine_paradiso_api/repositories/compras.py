@@ -31,6 +31,7 @@ def listar_compras_de_usuario(id_usuario: int, limit: int, offset: int) -> tuple
         SELECT
             c.id_compra,
             c.estado,
+            c.cancelada_por,
             c.fecha_hora,
             f.id_funcion,
             p.titulo AS pelicula,
@@ -86,6 +87,7 @@ def listar_compras_con_qr_admin() -> list[dict]:
         SELECT
             c.id_compra,
             c.estado,
+            c.cancelada_por,
             c.fecha_hora AS fecha_compra,
             p.titulo AS pelicula,
             s.nombre AS sala,
@@ -319,18 +321,23 @@ def eliminar_compra(conexion, id_compra: int) -> None:
 
 
 
-def marcar_compra_cancelada(conexion, id_compra: int) -> None:
+def marcar_compra_cancelada(conexion, id_compra: int, cancelada_por: str) -> None:
     """
-    Pasa la compra a cancelada. La compra queda guardada para contarla en los dashboards.
+    Pasa la compra a cancelada y guarda quien al cancelo. La compra queda guardada para contarla en los dashboards.
     """
     conexion.execute(
         text("""
             UPDATE compras
-            SET estado = :estado_cancelada
+            SET estado = :estado_cancelada,
+                cancelada_por = :cancelada_por
             WHERE id_compra = :id_compra
         """),
-        {'id_compra': id_compra, 'estado_cancelada': ESTADO_CANCELADA},
+        {
+            'id_compra': id_compra, 'estado_cancelada': ESTADO_CANCELADA,
+            'cancelada_por': cancelada_por,
+        },
     )
+    
 
 
 def eliminar_entradas_de_compra(conexion, id_compra: int) -> None:

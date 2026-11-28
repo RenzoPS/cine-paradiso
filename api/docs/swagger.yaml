@@ -1182,6 +1182,72 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /compras/{id_compra}/cancelar-admin:
+    post:
+      summary: "El admin cancela una compra pagada o pendiente"
+      description: |
+        El administrador cancela una compra pagada o pendiente de cualquier cliente. No aplica el límite de 24 horas del cliente, pero la función no tiene que haber empezado. La compra pasa a `cancelada` con `cancelada_por = admin` y se borran sus entradas: las butacas quedan libres. Después se le manda un mail al cliente avisándole.
+      operationId: post_cancelar_compra_admin
+      tags:
+        - Compras
+      parameters:
+        - name: id_compra
+          in: path
+          required: true
+          description: Identificador interno positivo.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Compra cancelada por el admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id_compra:
+                    type: integer
+                    example: 4
+                  estado:
+                    type: string
+                    example: cancelada
+                  cancelada_por:
+                    type: string
+                    example: admin
+                  mail_enviado:
+                    type: boolean
+                    description: Si se pudo mandar el mail de aviso al cliente. Si falla, la compra igual queda cancelada.
+                    example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Sin sesión (`auth.token.missing`), sesión vencida (`auth.token.expired`) o inválida (`auth.token.invalid`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: La sesión no es de un administrador (`auth.access.denied`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe la compra (`compra.not.found`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La compra no está pagada ni pendiente (`compra.no.cancelable`) o la función ya empezó (`compra.funcion.comenzada`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /compras/{id_compra}/factura:
     get:
       summary: "Obtener la factura de una compra"

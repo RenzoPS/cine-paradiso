@@ -49,3 +49,42 @@ CONFIRMACION_COMPRA = """\
 </body>
 </html>
 """
+
+CANCELACION_ADMIN = """\
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tu entrada fue cancelada</title>
+</head>
+<body bgcolor="#f2f2f2">
+    <table width="100%" bgcolor="#f2f2f2" cellpadding="16" border="0">
+        <tr>
+            <td align="center">
+                <table width="600" bgcolor="#ffffff" cellpadding="16" border="1" bordercolor="#1e1e1e">
+                    <tr>
+                        <td align="center">
+                            <font face="Arial, Helvetica, sans-serif" color="#1e1e1e">
+                                <font size="6"><b>Cine Paradiso</b></font>
+                                <hr>
+                                <font size="4"><b>Tu entrada fue cancelada</b></font><br><br>
+                                El cine canceló tu compra N° {{ id_compra }}.
+                                {% if tenia_qr %}<br>El QR de esta compra ya no es válido.{% endif %}
+                                <hr>
+                                <b>{{ pelicula }}</b><br>
+                                {{ sala }}<br>
+                                {{ fecha_hora }}<br>
+                                {{ butacas }}
+                                <hr>
+                                <font size="2" color="#777777">Si tenés dudas, comunicate con el cine.</font>
+                            </font>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""

@@ -80,6 +80,10 @@ ESTADO_VENCIDA   = 'vencida'
 ESTADO_USADA     = 'usada'
 ESTADO_CANCELADA = 'cancelada'
 
+# Quien cancelo una compra (columna compras.cancelada_por)
+CANCELADA_POR_CLIENTE = 'cliente'
+CANCELADA_POR_ADMIN   = 'admin'
+
 # Nombre que muestra el dashboard para las peliculas que TMDB no informo con genero.
 GENERO_SIN_DEFINIR = 'Sin genero'
 
@@ -106,6 +110,7 @@ ERROR_CODE_COMPRA_FUNCION_PASADA = 'compra.funcion.pasada'
 ERROR_CODE_COMPRA_NO_ABANDONABLE = 'compra.no.abandonable'
 ERROR_CODE_COMPRA_NO_CANCELABLE  = 'compra.no.cancelable'
 ERROR_CODE_COMPRA_FUERA_DE_PLAZO = 'compra.fuera.plazo'
+ERROR_CODE_COMPRA_FUNCION_COMENZADA = 'compra.funcion.comenzada'
 
 ERROR_CODE_QR_INVALIDO          = 'qr.invalid'
 ERROR_CODE_QR_SIN_EMITIR        = 'qr.not.issued'

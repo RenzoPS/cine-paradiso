@@ -131,6 +131,11 @@
                             <span class="admin-badge admin-badge-{{ compra.estado }}">
                                 {{ compra.estado | capitalize }}
                             </span>
+                            {% if compra.cancelada_por == 'admin' %}
+                            <span class="admin-cliente-email">por el cine</span>
+                            {% elif compra.cancelada_por == 'cliente' %}
+                            <span class="admin-cliente-email">por el cliente</span>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="admin-row-actions">
@@ -140,6 +145,17 @@
                                         Simular escaneo
                                     </button>
                                 </form>
+                                {% if compra.estado == 'pagada' %}
+                                <form
+                                    method="post"
+                                    action="{{ url_for('admin.cancelar_compra', id_compra=compra.id_compra) }}"
+                                    onsubmit="return confirm('¿Cancelar la compra #{{ compra.id_compra }}? Las butacas quedan libres.');"
+                                >
+                                    <button class="btn btn-sm btn-outline admin-btn-cancelar" type="submit">
+                                        Cancelar compra
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

@@ -5,6 +5,7 @@ from ..services.compras import (
     abandonar_compra,
     buscar_compra,
     cancelar_compra,
+    cancelar_compra_admin,
     confirmar_compra,
     crear_compra,
     listar_compras,
@@ -59,6 +60,12 @@ def post_confirmar_compra(id_compra):
 def post_cancelar_compra(id_compra):
     id_usuario = verificar_cliente()['id_usuario']
     return jsonify(cancelar_compra(id_compra, id_usuario))
+
+
+@compras_bp.route('/compras/<id_compra>/cancelar-admin', methods=['POST'])
+def post_cancelar_compra_admin(id_compra):
+    verificar_administrador()
+    return jsonify(cancelar_compra_admin(id_compra))
 
 
 @compras_bp.route('/compras/<id_compra>/factura', methods=['GET'])
